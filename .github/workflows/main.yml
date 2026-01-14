@@ -1,34 +1,34 @@
 name: Deploy Velo
 on:
   push:
-    branches: [ main ] # Parte ogni volta che fai push su main
+    branches: [ main ] # Si attiva quando fai push su main
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout codice
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Installa .NET
-        uses: actions/setup-net@v3
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x # Assicurati che sia la tua versione
+          dotnet-version: 8.0.x # Verifica che il tuo progetto sia .NET 8
 
       - name: Compila Velo (Publish)
         run: dotnet publish -c Release -o output
 
       - name: Fix per GitHub Pages
         run: |
-          # Cambia il base href da "/" al nome del tuo repo
+          # Corregge il percorso base per GitHub Pages
           sed -i 's/<base href="\/" \/>/<base href="\/VELO-Image-Size-Optimizer\/" \/>/g' output/wwwroot/index.html
-          # Crea il file 404 per evitare errori al refresh
+          # Crea file 404 per gestire il refresh della pagina
           cp output/wwwroot/index.html output/wwwroot/404.html
-          # Evita che GitHub ignori le cartelle con underscore (_)
+          # Impedisce a GitHub di processare i file con Jekyll
           touch output/wwwroot/.nojekyll
 
       - name: Metti il sito online
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: output/wwwroot # Prende solo i file pronti
-          branch: gh-pages # Li mette in un ramo speciale dedicato al sito
+          folder: output/wwwroot
+          branch: gh-pages
