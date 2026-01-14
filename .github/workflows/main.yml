@@ -2,32 +2,35 @@ name: Deploy Velo
 on:
   push:
     branches: [ main ]
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout codice
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Installa .NET
+      - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 7.0.x # Ho impostato 7.0 basandomi sull'errore wasm-tools-net7
+          dotnet-version: 7.0.x
 
-      - name: Installa Carichi di Lavoro (Workloads)
-        run: dotnet workload install wasm-tools
+      - name: Install WASM Tools
+        # Installiamo esplicitamente la versione 7 dei tool
+        run: dotnet workload install wasm-tools-net7
 
-      - name: Compila Velo (Publish)
+      - name: Restore Workloads
+        # Questo è il comando specifico suggerito dall'errore
+        run: dotnet workload restore
+
+      - name: Publish
         run: dotnet publish -c Release -o output
 
-      - name: Fix per GitHub Pages
+      - name: Fix paths
         run: |
           sed -i 's/<base href="\/" \/>/<base href="\/VELO-Image-Size-Optimizer\/" \/>/g' output/wwwroot/index.html
           cp output/wwwroot/index.html output/wwwroot/404.html
           touch output/wwwroot/.nojekyll
 
-      - name: Metti il sito online
+      - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: output/wwwroot
