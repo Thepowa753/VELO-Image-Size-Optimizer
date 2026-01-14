@@ -1,7 +1,7 @@
 name: Deploy Velo
 on:
   push:
-    branches: [ main ] # Si attiva quando fai push su main
+    branches: [ main ]
 
 jobs:
   build-and-deploy:
@@ -13,18 +13,18 @@ jobs:
       - name: Installa .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x # Verifica che il tuo progetto sia .NET 8
+          dotnet-version: 7.0.x # Ho impostato 7.0 basandomi sull'errore wasm-tools-net7
+
+      - name: Installa Carichi di Lavoro (Workloads)
+        run: dotnet workload install wasm-tools
 
       - name: Compila Velo (Publish)
         run: dotnet publish -c Release -o output
 
       - name: Fix per GitHub Pages
         run: |
-          # Corregge il percorso base per GitHub Pages
           sed -i 's/<base href="\/" \/>/<base href="\/VELO-Image-Size-Optimizer\/" \/>/g' output/wwwroot/index.html
-          # Crea file 404 per gestire il refresh della pagina
           cp output/wwwroot/index.html output/wwwroot/404.html
-          # Impedisce a GitHub di processare i file con Jekyll
           touch output/wwwroot/.nojekyll
 
       - name: Metti il sito online
