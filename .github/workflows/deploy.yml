@@ -24,16 +24,14 @@ jobs:
 
       - name: Fix paths and Integrity
         run: |
-          # Sistema il base href
+          # 1. Sistema il base href
           sed -i 's/<base href="\/" \/>/<base href="\/VELO-Image-Size-Optimizer\/" \/>/g' output/wwwroot/index.html
-          # Rimuove i controlli di integrità per evitare l'errore SRI
-          sed -i 's/integrity="[^"]*"//g' output/wwwroot/_framework/blazor.boot.json
-          # Fix per 404 e Jekyll
+          
+          # 2. Rimuove totalmente i controlli di integrità (Fix definitivo per l'errore SRI)
+          # Questo comando elimina la proprietà "integrity" e il suo valore dal JSON
+          sed -i 's/"integrity":\s*"[^"]*",//g' output/wwwroot/_framework/blazor.boot.json
+          sed -i 's/"integrity":\s*"[^"]*"//g' output/wwwroot/_framework/blazor.boot.json
+          
+          # 3. Fix per 404 e Jekyll
           cp output/wwwroot/index.html output/wwwroot/404.html
           touch output/wwwroot/.nojekyll
-
-      - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: output/wwwroot
-          branch: gh-pages

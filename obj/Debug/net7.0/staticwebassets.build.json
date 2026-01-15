@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "FF0mOfJ8jAtxE/CwAEWVmgjr4h6ULQ6UYmdh2jJ9qGI=",
+  "Hash": "ET64SSkKNMp3YDeck4CZfGOHW85YyGv+ND5ytjfVf/E=",
   "Source": "Velo",
   "BasePath": "/",
   "Mode": "Root",
@@ -6934,6 +6934,40 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "C:\\Users\\admin\\Velo\\obj\\Debug\\net7.0\\scopedcss\\projectbundle\\Velo.bundle.scp.css"
+    },
+    {
+      "Identity": "C:\\Users\\admin\\Velo\\wwwroot\\.nojekyll",
+      "SourceId": "Velo",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\admin\\Velo\\wwwroot\\",
+      "BasePath": "/",
+      "RelativePath": ".nojekyll",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\.nojekyll"
+    },
+    {
+      "Identity": "C:\\Users\\admin\\Velo\\wwwroot\\404.html",
+      "SourceId": "Velo",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\admin\\Velo\\wwwroot\\",
+      "BasePath": "/",
+      "RelativePath": "404.html",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\404.html"
     },
     {
       "Identity": "C:\\Users\\admin\\Velo\\wwwroot\\css\\app.css",

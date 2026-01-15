@@ -13,6 +13,14 @@
       "PackagePath": "staticwebassets\\Velo.styles.css"
     },
     {
+      "Id": "C:\\Users\\admin\\Velo\\wwwroot\\.nojekyll",
+      "PackagePath": "staticwebassets\\.nojekyll"
+    },
+    {
+      "Id": "C:\\Users\\admin\\Velo\\wwwroot\\404.html",
+      "PackagePath": "staticwebassets\\404.html"
+    },
+    {
       "Id": "C:\\Users\\admin\\Velo\\wwwroot\\css\\app.css",
       "PackagePath": "staticwebassets\\css\\app.css"
     },
