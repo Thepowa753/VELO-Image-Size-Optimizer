@@ -1,7 +1,7 @@
 name: Deploy Velo
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -11,10 +11,10 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 7.0.x
+          dotnet-version: "10.0.x"
 
       - name: Install WASM Tools
-        run: dotnet workload install wasm-tools-net7
+        run: dotnet workload install wasm-tools
 
       - name: Restore Workloads
         run: dotnet workload restore
@@ -26,14 +26,14 @@ jobs:
         run: |
           # 1. Sistema il base href
           sed -i 's/<base href="\/" \/>/<base href="\/VELO-Image-Size-Optimizer\/" \/>/g' output/wwwroot/index.html
-          
+
           # 2. Rimuove totalmente le chiavi "integrity" dal JSON
           # Questo comando usa una regex più generica per colpire ogni occorrenza
           sed -i 's/"integrity":\s*"[^"]*"//g' output/wwwroot/_framework/blazor.boot.json
-          
+
           # 3. Pulisce le virgole doppie o finali generate dalla rimozione
           sed -i 's/,,/,/g; s/,}/}/g; s/{,/{/g' output/wwwroot/_framework/blazor.boot.json
-          
+
           # 4. Fix standard per GitHub Pages
           cp output/wwwroot/index.html output/wwwroot/404.html
           touch output/wwwroot/.nojekyll
