@@ -27,11 +27,13 @@ jobs:
           # 1. Sistema il base href
           sed -i 's/<base href="\/" \/>/<base href="\/VELO-Image-Size-Optimizer\/" \/>/g' output/wwwroot/index.html
           
-          # 2. Rimuove totalmente i controlli di integrità (Fix definitivo per l'errore SRI)
-          # Questo comando elimina la proprietà "integrity" e il suo valore dal JSON
-          sed -i 's/"integrity":\s*"[^"]*",//g' output/wwwroot/_framework/blazor.boot.json
+          # 2. Rimuove totalmente le chiavi "integrity" dal JSON
+          # Questo comando usa una regex più generica per colpire ogni occorrenza
           sed -i 's/"integrity":\s*"[^"]*"//g' output/wwwroot/_framework/blazor.boot.json
           
-          # 3. Fix per 404 e Jekyll
+          # 3. Pulisce le virgole doppie o finali generate dalla rimozione
+          sed -i 's/,,/,/g; s/,}/}/g; s/{,/{/g' output/wwwroot/_framework/blazor.boot.json
+          
+          # 4. Fix standard per GitHub Pages
           cp output/wwwroot/index.html output/wwwroot/404.html
           touch output/wwwroot/.nojekyll
