@@ -2,106 +2,143 @@
 @using Velo.Classes
 @inject IJSRuntime JS
 
-<div class="velo-card">
-    <h2 class="text-center mb-4"><span class="LogoFont">VELO </span> <span class="LogoDescription">Image Size
-            Optimizer</span></h2>
+<div class="container-fluid vh-100 overflow-hidden bg-black">
+    <div class="row h-100">
+        <div class="col-3 bg-dark border-end border-secondary p-3 overflow-auto h-100 shadow-lg">
+            <h2 class="text-center mb-4"><span class="LogoFont">VELO</span></h2>
 
-    <div class="upload-zone mb-4">
-        <input type="file" @onchange="OnFilesSelected" @ref="fileInputRef" id="fileInput" multiple
-            class="form-control" />
-    </div>
-
-    @if (pendingFiles.Any())
-    {
-        <div class="file-manager">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="text-muted small uppercase mb-0">Files (@pendingFiles.Count)</h5>
-                @if (pendingFiles.Any(f => f.Data != null))
-                {
-                    <button class="btn btn-success btn-sm shadow" @onclick="DownloadZip">
-                        📦 Download All .ZIP
-                    </button>
-                }
+            <div class="upload-zone mb-4">
+                <input type="file" @onchange="OnFilesSelected" @ref="fileInputRef" id="fileInput" multiple class="form-control" />
             </div>
 
-            @foreach (var file in pendingFiles)
+            @if (pendingFiles.Any())
             {
-                <div
-                    class="file-row p-3 mb-2 bg-dark border @(file.Data != null ? "border-success" : "border-secondary") rounded shadow-sm">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div class="text-truncate" style="max-width: 65%;">
-                            <span class="text-white fw-bold">@file.Name</span>
-                            <div class="d-flex gap-2 mt-1">
-                                <small class="text-muted">Orig: @(file.Size / 1024) KB</small>
-                                @if (file.CompressedSize.HasValue)
-                                {
-                                    <small class="text-success fw-bold">Final: @file.CompressedSize KB</small>
-                                    <span class="badge bg-success text-dark" style="font-size: 0.7rem;">-@file.Savings%</span>
-                                }
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="text-muted small uppercase mb-0">Files (@pendingFiles.Count)</h5>
+                    <button class="btn btn-success btn-sm shadow" @onclick="DownloadZip">📦 ZIP</button>
+                </div>
+
+                @foreach (var file in pendingFiles)
+                {
+                    <div class="file-row p-3 mb-2 bg-dark border @(selectedFile == file ? "border-primary shadow-glow" : (file.Data != null ? "border-success" : "border-secondary")) rounded cursor-pointer"
+                         @onclick="() => SelectFile(file)">
+                        
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="text-truncate" style="max-width: 60%;">
+                                <span class="text-white fw-bold small">@file.Name</span>
+                                <div class="d-flex gap-2 mt-1">
+                                    <small class="text-muted" style="font-size: 0.7rem;">Orig: @(file.Size / 1024) KB</small>
+                                    @if (file.CompressedSize.HasValue)
+                                    {
+                                        <small class="text-success fw-bold" style="font-size: 0.7rem;">Final: @file.CompressedSize KB</small>
+                                    }
+                                </div>
+                            </div>
+                            <div class="d-flex gap-1">
+                                <button class="btn btn-sm text-info p-0" @onclick:stopPropagation="true" @onclick="() => ResetQuality(file)">⟳</button>
+                                <button class="btn btn-sm text-danger p-0" @onclick:stopPropagation="true" @onclick="() => RemoveFile(file)">✕</button>
                             </div>
                         </div>
 
-                        <div class="d-flex gap-2">
-                            @* TASTO RESET QUALITÀ *@
-                            <button class="btn btn-sm btn-outline-info border-0" title="Reset Quality to 75%"
-                                @onclick="() => ResetQuality(file)">
-                                <span style="font-size: 1.1rem;">⟳</span>
-                            </button>
-
-                            @* TASTO CANCELLA *@
-                            <button class="btn btn-sm btn-outline-danger border-0" @onclick="() => RemoveFile(file)">
-                                ✕
-                            </button>
+                        <div class="row align-items-center g-2 border-top border-secondary pt-2">
+                            <div class="col">
+                                <input type="range" class="form-range" min="1" max="100" 
+                                       value="@file.Quality" 
+                                       @oninput="(e) => UpdateQualityValue(e, file)"
+                                       @onchange="() => OptimizeSingleFile(file)"
+                                       @onclick:stopPropagation="true" />
+                            </div>
+                            <div class="col-auto">
+                                <span class="badge bg-primary" style="font-size: 0.6rem;">@file.Quality%</span>
+                            </div>
                         </div>
                     </div>
+                }
+            }
+        </div>
 
-                    <div class="row align-items-center g-2 mt-2 border-top border-secondary pt-2">
-                        <div class="col">
-                            <input type="range" class="form-range" min="1" max="100" @bind="file.Quality"
-                                @bind:event="oninput" />
-                        </div>
-                        <div class="col-auto">
-                            <span class="badge bg-primary">Q: @file.Quality%</span>
-                        </div>
-                        <div class="col-auto">
-                            @if (file.Url != null)
-                            {
-                                <a href="@file.Url" download="@file.Name" class="btn btn-sm btn-success">Download</a>
-                            }
-                        </div>
+<div class="col-9 p-0 bg-black d-flex flex-column h-100 position-relative">
+    @if (selectedFile != null)
+    {
+        <div class="preview-header p-2 bg-dark border-bottom border-secondary d-flex justify-content-between align-items-center">
+            <div class="ps-2">
+                <span class="text-white-50 small">@selectedFile.Name</span>
+                <span class="badge bg-secondary ms-2" style="font-size: 0.6rem;">ORIGINALE</span>
+                <span class="text-white mx-1">vs</span>
+                <span class="badge bg-success" style="font-size: 0.6rem;">VELO OPTIMIZED</span>
+            </div>
+            @if(selectedFile.Savings.HasValue) {
+                <span class="badge border border-success text-success me-2">Risparmio: -@selectedFile.Savings%</span>
+            }
+        </div>
+
+        <div class="preview-stage" style="width: 100%; height: 100%; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+            
+            @if (selectedFile != null && !string.IsNullOrEmpty(selectedFile.Url))
+            {
+                <div class="velo-container" style="position: relative; display: inline-block; line-height: 0;">
+                    
+                    <img src="@selectedFile.OriginalUrl" 
+                        style="display: block; max-width: 100%; max-height: 85vh; width: auto; height: auto; visibility: visible;" />
+
+                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; overflow: hidden;
+                                clip-path: inset(0 0 0 @(comparisonRange.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%);">
+                        <img src="@selectedFile.Url" 
+                            style="display: block; width: 100%; height: 100%; object-fit: contain;" />
                     </div>
+
+                    <div style="position: absolute; top: 0; bottom: 0; width: 2px; background: #007bff; z-index: 5; pointer-events: none;
+                                left: @(comparisonRange.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%;">
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 34px; height: 34px; background: #007bff; border-radius: 50%; border: 2px solid white; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold;">↔</div>
+                    </div>
+
+                    <input type="range" min="0" max="100" step="1" 
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; z-index: 10; cursor: col-resize; margin: 0; padding: 0; -webkit-appearance: none;"
+                        @bind="comparisonRange" @bind:event="oninput" />
                 </div>
             }
-
-            <button class="btn btn-primary w-100 py-3 fw-bold mt-3 shadow-lg" @onclick="StartConversion"
-                disabled="@isProcessing">
-                @(isProcessing ? "RE-OPTIMIZING..." : "FORCE RE-OPTIMIZE ALL")
-            </button>
         </div>
     }
 </div>
+    </div>
+</div>
+
 
 @code {
     private bool isProcessing = false;
     private ElementReference fileInputRef;
     private List<FileEntry> pendingFiles = new();
 
-    private async Task OnFilesSelected(ChangeEventArgs e)
+    private FileEntry? selectedFile;
+    private double comparisonRange = 50; // Posizione iniziale dello slider Before/After
+
+
+    private void SelectFile(FileEntry file)
     {
-        var newFiles = await JS.InvokeAsync<List<FileEntry>>("getSelectedFilesInfo", fileInputRef);
-
-        foreach (var file in newFiles)
-        {
-            // Impostiamo la qualità di default per il caricamento
-            file.Quality = 75;
-            pendingFiles.Add(file);
-
-            // OTTIMIZZAZIONE IMMEDIATA AL CARICAMENTO
-            await OptimizeSingleFile(file);
-        }
-
+        selectedFile = file;
         StateHasChanged();
     }
+
+private async Task OnFilesSelected(ChangeEventArgs e)
+{
+    var newFiles = await JS.InvokeAsync<List<FileEntry>>("getSelectedFilesInfo", fileInputRef);
+    
+    foreach (var file in newFiles)
+    {
+        file.Quality = 75;
+        
+        // Ora l'ID esiste sicuramente in cache
+        file.OriginalUrl = await JS.InvokeAsync<string>("getFileUrl", file.FileId);
+        
+        pendingFiles.Add(file);
+        if (selectedFile == null) selectedFile = file;
+
+        // Eseguiamo l'ottimizzazione
+        await OptimizeSingleFile(file); 
+    }
+    StateHasChanged();
+}
+
 
     private async Task StartConversion()
     {
@@ -163,4 +200,17 @@
 
         StateHasChanged();
     }
+
+private void UpdateQualityValue(ChangeEventArgs e, FileEntry file)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var newVal))
+        {
+            file.Quality = newVal;
+            // Aggiorna solo il numero nella UI della lista
+        }
+    }
+
+
+
+    
 }
