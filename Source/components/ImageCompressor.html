@@ -114,17 +114,7 @@
                     >
                         <div class="zoom-controls">
                             <button
-                                class="zoom-btn before-btn"
-                                id="btnShowOriginal"
-                                title="Show Before"
-                            >Before</button>
-                            <button
-                                class="zoom-btn after-btn active"
-                                id="btnShowOptimized"
-                                title="Show After"
-                            >After</button>
-                            <button
-                                class="zoom-btn reset-btn ms-2"
+                                class="zoom-btn reset-btn"
                                 id="btnResetZoom"
                                 title="Reset Zoom"
                             >
@@ -148,18 +138,34 @@
                             class="zoom-frame"
                             id="zoomFrame"
                         >
-                            <img
-                                src=""
-                                class="frame-img original-image d-none"
-                                id="imgOriginal"
-                                draggable="false"
-                            />
-                            <img
-                                src=""
-                                class="frame-img optimized-image d-block"
-                                id="imgOptimized"
-                                draggable="false"
-                            />
+                            <div class="image-compare-container">
+                                <img
+                                    src=""
+                                    class="frame-img compare-img-after"
+                                    id="imgOptimized"
+                                    draggable="false"
+                                />
+                                <div class="compare-overlay" id="compareOverlay">
+                                    <img
+                                        src=""
+                                        class="frame-img compare-img-before"
+                                        id="imgOriginal"
+                                        draggable="false"
+                                    />
+                                </div>
+                                <div class="compare-slider" id="compareSlider">
+                                    <div class="compare-slider-button">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M15 18L9 12L15 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M9 18L15 12L9 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="compare-label compare-label-before">BEFORE</div>
+                                <div class="compare-label compare-label-after">AFTER</div>
+                            </div>
                         </div>
                     </div>
                 </div>

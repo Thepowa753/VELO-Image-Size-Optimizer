@@ -11,7 +11,7 @@ const initApp = () => {
         'btnAbout', 'modalAbout', 'backdropAbout', 'btnCloseAbout',
         'modalPrivacy', 'backdropPrivacy', 'btnClosePrivacy', 'linkPrivacy',
         'btnSelectImages', 'btnAddImg', 'globalFormat', 'btnClear', 'btnZip',
-        'btnShowOriginal', 'btnShowOptimized', 'btnResetZoom'
+        'btnResetZoom', 'compareSlider', 'compareOverlay'
     ];
 
     ids.forEach(id => {
@@ -72,9 +72,10 @@ function setupEventListeners() {
     };
 
     // Zoom Controls
-    if (els.btnShowOriginal) els.btnShowOriginal.onclick = () => setPreviewMode(true);
-    if (els.btnShowOptimized) els.btnShowOptimized.onclick = () => setPreviewMode(false);
     if (els.btnResetZoom) els.btnResetZoom.onclick = resetZoom;
+
+    // Comparison Slider
+    setupComparisonSlider();
 
     // Zoom Interaction (Pan & Wheel)
     if (els.veloContainer) {
@@ -88,4 +89,73 @@ function setupEventListeners() {
         window.addEventListener('mousemove', drag);
         window.addEventListener('mouseup', stopDrag);
     }
+}
+
+// Comparison Slider Functionality
+let isSliding = false;
+
+function setupComparisonSlider() {
+    if (!els.compareSlider || !els.compareOverlay) return;
+
+    const slider = els.compareSlider;
+    const overlay = els.compareOverlay;
+
+    const startSliding = (e) => {
+        isSliding = true;
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const slide = (e) => {
+        if (!isSliding) return;
+        
+        const container = els.zoomFrame;
+        if (!container) return;
+
+        const rect = container.getBoundingClientRect();
+        let x = e.clientX - rect.left;
+        
+        // Clamp between 0 and width
+        x = Math.max(0, Math.min(x, rect.width));
+        
+        const percentage = (x / rect.width) * 100;
+        
+        slider.style.left = percentage + '%';
+        overlay.style.width = percentage + '%';
+    };
+
+    const stopSliding = () => {
+        isSliding = false;
+    };
+
+    // Mouse events
+    slider.addEventListener('mousedown', startSliding);
+    window.addEventListener('mousemove', slide);
+    window.addEventListener('mouseup', stopSliding);
+
+    // Touch events for mobile
+    slider.addEventListener('touchstart', (e) => {
+        isSliding = true;
+        e.preventDefault();
+        e.stopPropagation();
+    });
+
+    window.addEventListener('touchmove', (e) => {
+        if (!isSliding) return;
+        
+        const touch = e.touches[0];
+        const container = els.zoomFrame;
+        if (!container) return;
+
+        const rect = container.getBoundingClientRect();
+        let x = touch.clientX - rect.left;
+        
+        x = Math.max(0, Math.min(x, rect.width));
+        const percentage = (x / rect.width) * 100;
+        
+        slider.style.left = percentage + '%';
+        overlay.style.width = percentage + '%';
+    });
+
+    window.addEventListener('touchend', stopSliding);
 }
