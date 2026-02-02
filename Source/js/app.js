@@ -182,3 +182,70 @@ function setupEventListeners() {
     //     loadComponent('components/AudioCompressor.html');
     // });
 }
+
+// Comparison Slider Functionality
+function setupComparisonSlider() {
+    if (!els.compareSlider || !els.compareOverlay) return;
+
+    const slider = els.compareSlider;
+    const overlay = els.compareOverlay;
+
+    const startSliding = (e) => {
+        state.isSliding = true;
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const slide = (e) => {
+        if (!state.isSliding) return;
+        
+        const container = els.zoomFrame;
+        if (!container) return;
+
+        const rect = container.getBoundingClientRect();
+        let x = e.clientX - rect.left;
+        
+        // Clamp between 0 and width
+        x = Math.max(0, Math.min(x, rect.width));
+        
+        const percentage = (x / rect.width) * 100;
+        
+        slider.style.left = percentage + '%';
+        overlay.style.width = percentage + '%';
+    };
+
+    const stopSliding = () => {
+        state.isSliding = false;
+    };
+
+    // Mouse events
+    slider.addEventListener('mousedown', startSliding);
+    window.addEventListener('mousemove', slide);
+    window.addEventListener('mouseup', stopSliding);
+
+    // Touch events for mobile
+    slider.addEventListener('touchstart', (e) => {
+        state.isSliding = true;
+        e.preventDefault();
+        e.stopPropagation();
+    });
+
+    window.addEventListener('touchmove', (e) => {
+        if (!state.isSliding) return;
+        
+        const touch = e.touches[0];
+        const container = els.zoomFrame;
+        if (!container) return;
+
+        const rect = container.getBoundingClientRect();
+        let x = touch.clientX - rect.left;
+        
+        x = Math.max(0, Math.min(x, rect.width));
+        const percentage = (x / rect.width) * 100;
+        
+        slider.style.left = percentage + '%';
+        overlay.style.width = percentage + '%';
+    });
+
+    window.addEventListener('touchend', stopSliding);
+}
