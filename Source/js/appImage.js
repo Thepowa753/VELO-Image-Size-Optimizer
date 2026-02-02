@@ -92,8 +92,6 @@ function setupEventListeners() {
 }
 
 // Comparison Slider Functionality
-let isSliding = false;
-
 function setupComparisonSlider() {
     if (!els.compareSlider || !els.compareOverlay) return;
 
@@ -101,13 +99,13 @@ function setupComparisonSlider() {
     const overlay = els.compareOverlay;
 
     const startSliding = (e) => {
-        isSliding = true;
+        state.isSliding = true;
         e.preventDefault();
         e.stopPropagation();
     };
 
     const slide = (e) => {
-        if (!isSliding) return;
+        if (!state.isSliding) return;
         
         const container = els.zoomFrame;
         if (!container) return;
@@ -125,7 +123,7 @@ function setupComparisonSlider() {
     };
 
     const stopSliding = () => {
-        isSliding = false;
+        state.isSliding = false;
     };
 
     // Mouse events
@@ -135,13 +133,13 @@ function setupComparisonSlider() {
 
     // Touch events for mobile
     slider.addEventListener('touchstart', (e) => {
-        isSliding = true;
+        state.isSliding = true;
         e.preventDefault();
         e.stopPropagation();
     });
 
     window.addEventListener('touchmove', (e) => {
-        if (!isSliding) return;
+        if (!state.isSliding) return;
         
         const touch = e.touches[0];
         const container = els.zoomFrame;

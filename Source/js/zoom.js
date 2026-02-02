@@ -60,7 +60,7 @@ function startDrag(e) {
 }
 
 function drag(e) {
-    if (!state.zoom.isDragging || isSliding) return;
+    if (!state.zoom.isDragging || state.isSliding) return;
     e.preventDefault();
     state.zoom.x = e.clientX - state.zoom.startX;
     state.zoom.y = e.clientY - state.zoom.startY;

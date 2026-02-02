@@ -92,8 +92,8 @@ function setupEventListeners() {
     // Zoom Controls
     if (els.btnResetZoom) els.btnResetZoom.onclick = resetZoom;
 
-    // Comparison Slider
-    if (typeof setupComparisonSlider === 'function') {
+    // Comparison Slider (only available in Image Compressor component)
+    if (typeof setupComparisonSlider !== 'undefined') {
         setupComparisonSlider();
     }
 
