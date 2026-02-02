@@ -11,7 +11,7 @@ const initApp = () => {
         'btnAbout', 'modalAbout', 'backdropAbout', 'btnCloseAbout',
         'modalPrivacy', 'backdropPrivacy', 'btnClosePrivacy', 'linkPrivacy',
         'btnSelectImages', 'btnAddImg', 'globalFormat', 'globalMaxWidth', 'btnClear', 'btnZip',
-        'btnShowOriginal', 'btnShowOptimized', 'btnResetZoom'
+        'btnResetZoom', 'compareSlider', 'compareOverlay'
     ];
 
     ids.forEach(id => {
@@ -90,9 +90,12 @@ function setupEventListeners() {
     };
 
     // Zoom Controls
-    if (els.btnShowOriginal) els.btnShowOriginal.onclick = () => setPreviewMode(true);
-    if (els.btnShowOptimized) els.btnShowOptimized.onclick = () => setPreviewMode(false);
     if (els.btnResetZoom) els.btnResetZoom.onclick = resetZoom;
+
+    // Comparison Slider (only available in Image Compressor component)
+    if (typeof setupComparisonSlider !== 'undefined') {
+        setupComparisonSlider();
+    }
 
     // Zoom Interaction (Pan & Wheel)
     if (els.veloContainer) {
