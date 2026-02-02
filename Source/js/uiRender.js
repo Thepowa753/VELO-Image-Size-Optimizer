@@ -245,23 +245,7 @@ function renderPreview() {
     // Always update optimized as it changes often
     if (els.imgOptimized && file.compressedUrl) els.imgOptimized.src = file.compressedUrl;
 
-    setPreviewMode(state.showingOriginal);
     renderLayerPanel(file);
-}
-
-function setPreviewMode(showOriginal) {
-    state.showingOriginal = showOriginal;
-    if (showOriginal) {
-        if(els.imgOriginal) { els.imgOriginal.classList.remove('d-none'); els.imgOriginal.classList.add('d-block'); }
-        if(els.imgOptimized) { els.imgOptimized.classList.add('d-none'); els.imgOptimized.classList.remove('d-block'); }
-        if(els.btnShowOriginal) els.btnShowOriginal.classList.add('active');
-        if(els.btnShowOptimized) els.btnShowOptimized.classList.remove('active');
-    } else {
-        if(els.imgOriginal) { els.imgOriginal.classList.add('d-none'); els.imgOriginal.classList.remove('d-block'); }
-        if(els.imgOptimized) { els.imgOptimized.classList.remove('d-none'); els.imgOptimized.classList.add('d-block'); }
-        if(els.btnShowOriginal) els.btnShowOriginal.classList.remove('active');
-        if(els.btnShowOptimized) els.btnShowOptimized.classList.add('active');
-    }
 }
 
 function highlightLayer(file, layerIndex, show) {

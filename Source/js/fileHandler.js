@@ -7,6 +7,7 @@ const state = {
     maxWidth: null, // Null means original size
     showingOriginal: false,
     zoom: { scale: 1, x: 0, y: 0, isDragging: false, startX: 0, startY: 0 },
+    isSliding: false, // For comparison slider interaction
     supportedFormats: { jpeg: true, png: true, webp: false, avif: false }
 };
 

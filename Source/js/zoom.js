@@ -50,6 +50,9 @@ function handleWheel(e) {
 }
 
 function startDrag(e) {
+    // Don't start dragging if clicking on the slider
+    if (e.target.closest('.compare-slider')) return;
+    
     state.zoom.isDragging = true;
     state.zoom.startX = e.clientX - state.zoom.x;
     state.zoom.startY = e.clientY - state.zoom.y;
@@ -57,7 +60,7 @@ function startDrag(e) {
 }
 
 function drag(e) {
-    if (!state.zoom.isDragging) return;
+    if (!state.zoom.isDragging || state.isSliding) return;
     e.preventDefault();
     state.zoom.x = e.clientX - state.zoom.startX;
     state.zoom.y = e.clientY - state.zoom.startY;
