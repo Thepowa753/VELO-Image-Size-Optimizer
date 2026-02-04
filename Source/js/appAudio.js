@@ -45,7 +45,7 @@ async function handleAudioFiles(fileList) {
         if (audioState.files.some(f => f.name === file.name)) continue;
 
         const fileEntry = {
-            id: Math.random().toString(36).substr(2, 9),
+            id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9),
             name: file.name,
             originalFile: file,
             originalUrl: URL.createObjectURL(file),
@@ -188,7 +188,7 @@ async function encodeToWAV(audioBuffer) {
                 view.setInt16(offset, clampedSample * maxAmplitude, true);
                 offset += 2;
             } else if (bitDepth === 8) {
-                view.setInt8(offset, (clampedSample + 1) * 127.5);
+                view.setUint8(offset, (clampedSample + 1) * 127.5);
                 offset += 1;
             }
         }
@@ -218,7 +218,7 @@ async function encodeToMP3(audioBuffer) {
     const leftChannel = audioBuffer.getChannelData(0);
     const rightChannel = channels > 1 ? audioBuffer.getChannelData(1) : leftChannel;
     
-    // Convert to Int16
+    // Convert to Int16 (only when MP3 encoding is available)
     const leftSamples = new Int16Array(leftChannel.length);
     const rightSamples = new Int16Array(rightChannel.length);
     
@@ -324,8 +324,9 @@ function drawWaveform(audioBuffer, canvas, startTime = 0, endTime = null) {
 
     ctx.stroke();
 
-    // Draw trim markers if set
-    if (audioState.trimSettings.start > 0 || audioState.trimSettings.end > 0) {
+    // Draw trim markers if trim has been applied
+    if ((audioState.trimSettings.start > 0 || audioState.trimSettings.end > 0) && 
+        audioState.trimSettings.end > audioState.trimSettings.start) {
         const duration = audioBuffer.duration;
         const startX = (audioState.trimSettings.start / duration) * width;
         const endX = audioState.trimSettings.end > 0 ? 
