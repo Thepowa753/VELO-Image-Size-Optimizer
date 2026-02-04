@@ -364,6 +364,14 @@ function updateAudioUI() {
             drawWaveform(selected.audioBuffer, canvas);
         }
     }
+    
+    // Update audio duration display
+    const audioDuration = document.getElementById('audioDuration');
+    if (audioDuration && selected && selected.duration) {
+        audioDuration.textContent = formatDuration(selected.duration);
+    } else if (audioDuration) {
+        audioDuration.textContent = '0:00';
+    }
 
     // Update files count
     if (els.filesCountLabel) {
@@ -606,6 +614,53 @@ function setupAudioEventListeners() {
 
     // Playback controls
     let currentSource = null;
+    let playbackStartTime = 0;
+    let playbackDuration = 0;
+    let playbackInterval = null;
+    let isPlaying = false;
+    
+    // Update progress bar and time display
+    function updatePlaybackProgress() {
+        const audioProgressBar = document.getElementById('audioProgressBar');
+        const audioCurrentTime = document.getElementById('audioCurrentTime');
+        const audioDuration = document.getElementById('audioDuration');
+        
+        if (!audioProgressBar || !audioCurrentTime || !audioDuration) return;
+        
+        if (isPlaying && currentSource) {
+            const ctx = getAudioContext();
+            const elapsed = ctx.currentTime - playbackStartTime;
+            const progress = (elapsed / playbackDuration) * 100;
+            
+            audioProgressBar.value = Math.min(progress, 100);
+            audioCurrentTime.textContent = formatDuration(elapsed);
+            audioDuration.textContent = formatDuration(playbackDuration);
+        } else {
+            audioProgressBar.value = 0;
+            audioCurrentTime.textContent = '0:00';
+            
+            const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
+            if (selected && selected.duration) {
+                audioDuration.textContent = formatDuration(selected.duration);
+            } else {
+                audioDuration.textContent = '0:00';
+            }
+        }
+    }
+    
+    // Stop current playback
+    function stopPlayback() {
+        if (currentSource) {
+            currentSource.stop();
+            currentSource = null;
+        }
+        if (playbackInterval) {
+            clearInterval(playbackInterval);
+            playbackInterval = null;
+        }
+        isPlaying = false;
+        updatePlaybackProgress();
+    }
     
     const btnPlayOriginal = document.getElementById('btnPlayOriginal');
     if (btnPlayOriginal) {
@@ -614,9 +669,10 @@ function setupAudioEventListeners() {
             if (!selected || !selected.originalFile) return;
 
             if (currentSource) {
-                currentSource.stop();
-                currentSource = null;
+                stopPlayback();
                 btnPlayOriginal.textContent = 'Play Original';
+                const btnPlayProcessed = document.getElementById('btnPlayProcessed');
+                if (btnPlayProcessed) btnPlayProcessed.textContent = 'Play Processed';
                 return;
             }
 
@@ -628,11 +684,21 @@ function setupAudioEventListeners() {
                 currentSource = ctx.createBufferSource();
                 currentSource.buffer = audioBuffer;
                 currentSource.connect(ctx.destination);
+                
+                playbackStartTime = ctx.currentTime;
+                playbackDuration = audioBuffer.duration;
+                isPlaying = true;
+                
                 currentSource.start(0);
                 
                 btnPlayOriginal.textContent = 'Stop';
+                updatePlaybackProgress();
+                
+                // Update progress bar every 100ms
+                playbackInterval = setInterval(updatePlaybackProgress, 100);
+                
                 currentSource.onended = () => {
-                    currentSource = null;
+                    stopPlayback();
                     btnPlayOriginal.textContent = 'Play Original';
                 };
             } catch (error) {
@@ -648,9 +714,10 @@ function setupAudioEventListeners() {
             if (!selected || !selected.processedBlob) return;
 
             if (currentSource) {
-                currentSource.stop();
-                currentSource = null;
+                stopPlayback();
                 btnPlayProcessed.textContent = 'Play Processed';
+                const btnPlayOriginal = document.getElementById('btnPlayOriginal');
+                if (btnPlayOriginal) btnPlayOriginal.textContent = 'Play Original';
                 return;
             }
 
@@ -662,15 +729,41 @@ function setupAudioEventListeners() {
                 currentSource = ctx.createBufferSource();
                 currentSource.buffer = audioBuffer;
                 currentSource.connect(ctx.destination);
+                
+                playbackStartTime = ctx.currentTime;
+                playbackDuration = audioBuffer.duration;
+                isPlaying = true;
+                
                 currentSource.start(0);
                 
                 btnPlayProcessed.textContent = 'Stop';
+                updatePlaybackProgress();
+                
+                // Update progress bar every 100ms
+                playbackInterval = setInterval(updatePlaybackProgress, 100);
+                
                 currentSource.onended = () => {
-                    currentSource = null;
+                    stopPlayback();
                     btnPlayProcessed.textContent = 'Play Processed';
                 };
             } catch (error) {
                 console.error('Error playing audio:', error);
+            }
+        };
+    }
+    
+    // Handle progress bar - disable during playback (seeking not implemented)
+    const audioProgressBar = document.getElementById('audioProgressBar');
+    if (audioProgressBar) {
+        audioProgressBar.disabled = false;
+        audioProgressBar.oninput = (e) => {
+            // Reset to current playback position if user tries to seek during playback
+            if (isPlaying) {
+                e.preventDefault();
+                const ctx = getAudioContext();
+                const elapsed = ctx.currentTime - playbackStartTime;
+                const progress = (elapsed / playbackDuration) * 100;
+                audioProgressBar.value = progress;
             }
         };
     }

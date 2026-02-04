@@ -122,7 +122,7 @@
                             <label class="form-label text-white-50 small">High Frequency Cutoff</label>
                             <div class="d-flex align-items-center gap-2">
                                 <input type="range" class="form-range" id="cutoffFrequencyRange" 
-                                       min="8000" max="20000" step="1000" value="16000">
+                                       min="2000" max="35000" step="1000" value="16000">
                                 <span class="text-white small" id="cutoffFrequencyLabel">16 kHz</span>
                             </div>
                         </div>
@@ -150,13 +150,23 @@
                         <!-- Audio Playback -->
                         <div class="mb-3">
                             <label class="form-label text-white-50 small">Preview</label>
-                            <div class="d-flex gap-2">
+                            <div class="d-flex gap-2 mb-2">
                                 <button class="btn btn-blue btn-sm flex-grow-1" id="btnPlayOriginal">
                                     Play Original
                                 </button>
                                 <button class="btn btn-blue btn-sm flex-grow-1" id="btnPlayProcessed">
                                     Play Processed
                                 </button>
+                            </div>
+                            <!-- Progress Bar -->
+                            <div class="audio-progress-container mb-2">
+                                <input type="range" class="form-range" id="audioProgressBar" 
+                                       min="0" max="100" value="0" step="0.1">
+                            </div>
+                            <!-- Time Display -->
+                            <div class="d-flex justify-content-between text-white-50 small">
+                                <span id="audioCurrentTime">0:00</span>
+                                <span id="audioDuration">0:00</span>
                             </div>
                         </div>
                     </div>
