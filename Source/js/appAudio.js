@@ -752,22 +752,20 @@ function setupAudioEventListeners() {
         };
     }
     
-    // Handle progress bar seeking
+    // Handle progress bar - disable during playback (seeking not implemented)
     const audioProgressBar = document.getElementById('audioProgressBar');
     if (audioProgressBar) {
-        audioProgressBar.onchange = () => {
-            // Seeking not implemented yet - would require more complex audio handling
-            // For now, the progress bar is read-only during playback
-        };
-        
-        // Initialize with current file duration
-        const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
-        if (selected && selected.duration) {
-            const audioDuration = document.getElementById('audioDuration');
-            if (audioDuration) {
-                audioDuration.textContent = formatDuration(selected.duration);
+        audioProgressBar.disabled = false;
+        audioProgressBar.oninput = (e) => {
+            // Reset to current playback position if user tries to seek during playback
+            if (isPlaying) {
+                e.preventDefault();
+                const ctx = getAudioContext();
+                const elapsed = ctx.currentTime - playbackStartTime;
+                const progress = (elapsed / playbackDuration) * 100;
+                audioProgressBar.value = progress;
             }
-        }
+        };
     }
 
     // Drag & Drop for audio files
