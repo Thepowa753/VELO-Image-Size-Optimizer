@@ -30,6 +30,7 @@ function getAudioContext() {
 
 // Handle Audio Files
 async function handleAudioFiles(fileList) {
+    // Debug logging (can be removed for production)
     console.log('handleAudioFiles called with', fileList.length, 'files');
     const newFiles = Array.from(fileList).filter(f => 
         f.type.startsWith('audio/') || 
@@ -514,6 +515,7 @@ async function downloadAudioZip() {
 
 // Setup Audio Event Listeners
 function setupAudioEventListeners() {
+    // Debug logging (can be removed for production)
     console.log('Setting up audio event listeners');
     // File input handlers
     if (els.btnSelectImages) {
@@ -690,6 +692,7 @@ function setupAudioEventListeners() {
 // Use a listener that checks if audio component exists when the event fires
 document.addEventListener('velo-ready', () => {
     if (document.getElementById('audioCompressorContainer')) {
+        // Debug logging (can be removed for production)
         console.log('Audio component detected, setting up event listeners');
         setupAudioEventListeners();
     }
