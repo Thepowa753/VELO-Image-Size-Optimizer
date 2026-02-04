@@ -99,9 +99,10 @@ async function processFile(fileEntry, shouldUpdateUI = true) {
     // Special handling for PNG: If not resizing and format unchanged, use original file
     // PNG compression in canvas doesn't optimize well and often increases size
     const originalFormat = fileEntry.originalFile.type.split('/')[1];
-    const formatUnchanged = (fileEntry.format === 'png' && originalFormat === 'png') ||
-                           (fileEntry.format === 'jpeg' && (originalFormat === 'jpeg' || originalFormat === 'jpg')) ||
-                           (fileEntry.format === originalFormat);
+    // Normalize format comparison (jpeg vs jpg)
+    const normalizedOriginal = originalFormat === 'jpg' ? 'jpeg' : originalFormat;
+    const normalizedCurrent = fileEntry.format === 'jpg' ? 'jpeg' : fileEntry.format;
+    const formatUnchanged = normalizedOriginal === normalizedCurrent;
     
     if (fileEntry.format === 'png' && !isResized && formatUnchanged && fileEntry.mode !== 'pro') {
         // Use original PNG if not resizing and not in Pro mode
