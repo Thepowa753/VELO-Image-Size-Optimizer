@@ -47,10 +47,14 @@ function setupEventListeners() {
     if (els.backdropPrivacy) els.backdropPrivacy.onclick = () => toggle('modalPrivacy', false);
     if (els.btnClosePrivacy) els.btnClosePrivacy.onclick = () => toggle('modalPrivacy', false);
 
-    // File Input & Selection
-    if (els.btnSelectImages) els.btnSelectImages.onclick = () => els.fileInput.click();
-    if (els.btnAddImg) els.btnAddImg.onclick = () => els.fileInput.click();
-    if (els.fileInput) els.fileInput.onchange = (e) => handleFiles(e.target.files);
+    // File Input & Selection - Only set up if audio component is NOT active
+    // Audio component has its own event handlers in appAudio.js
+    const isAudioComponent = document.getElementById('audioCompressorContainer') !== null;
+    if (!isAudioComponent) {
+        if (els.btnSelectImages) els.btnSelectImages.onclick = () => els.fileInput.click();
+        if (els.btnAddImg) els.btnAddImg.onclick = () => els.fileInput.click();
+        if (els.fileInput) els.fileInput.onchange = (e) => handleFiles(e.target.files);
+    }
 
     // Drag & Drop
     // Prevent adding duplicate global listeners if initApp runs multiple times

@@ -30,12 +30,17 @@ function getAudioContext() {
 
 // Handle Audio Files
 async function handleAudioFiles(fileList) {
+    // Debug logging (can be removed for production)
+    console.log('handleAudioFiles called with', fileList.length, 'files');
     const newFiles = Array.from(fileList).filter(f => 
         f.type.startsWith('audio/') || 
         f.name.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/i)
     );
     
+    console.log('Filtered to', newFiles.length, 'audio files');
+    
     if (newFiles.length === 0) {
+        console.warn('No valid audio files found');
         alert('Please select valid audio files');
         return;
     }
@@ -510,15 +515,29 @@ async function downloadAudioZip() {
 
 // Setup Audio Event Listeners
 function setupAudioEventListeners() {
+    // Debug logging (can be removed for production)
+    console.log('Setting up audio event listeners');
     // File input handlers
     if (els.btnSelectImages) {
-        els.btnSelectImages.onclick = () => els.fileInput.click();
+        els.btnSelectImages.onclick = () => {
+            console.log('Select Audio Files button clicked');
+            els.fileInput.click();
+        };
     }
     if (els.btnAddImg) {
-        els.btnAddImg.onclick = () => els.fileInput.click();
+        els.btnAddImg.onclick = () => {
+            console.log('Add Audio button clicked');
+            els.fileInput.click();
+        };
     }
     if (els.fileInput) {
-        els.fileInput.onchange = (e) => handleAudioFiles(e.target.files);
+        console.log('Setting up fileInput change handler');
+        els.fileInput.onchange = (e) => {
+            console.log('File input changed, files:', e.target.files);
+            handleAudioFiles(e.target.files);
+        };
+    } else {
+        console.error('fileInput element not found!');
     }
 
     // Global actions
@@ -670,6 +689,11 @@ function setupAudioEventListeners() {
 }
 
 // Initialize audio component when loaded
-if (document.getElementById('audioCompressorContainer')) {
-    document.addEventListener('velo-ready', setupAudioEventListeners);
-}
+// Use a listener that checks if audio component exists when the event fires
+document.addEventListener('velo-ready', () => {
+    if (document.getElementById('audioCompressorContainer')) {
+        // Debug logging (can be removed for production)
+        console.log('Audio component detected, setting up event listeners');
+        setupAudioEventListeners();
+    }
+});
