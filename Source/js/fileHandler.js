@@ -153,7 +153,7 @@ async function optimizeFile(fileEntry) {
             { name: "High Detail", threshold: 30, quality: 60, blob: null, mask: null, pixelCount: 0, format: fileEntry.format },
             { name: "Sharp Edges", threshold: 255, quality: 40, blob: null, mask: null, pixelCount: 0, format: fileEntry.format }
         ];
-    } else if (fileEntry.layers[0] && fileEntry.layers[0].format !== fileEntry.format) {
+    } else if (fileEntry.layers[0].format !== fileEntry.format) {
         // Format changed, invalidate all blobs but keep masks
         fileEntry.layers.forEach(layer => {
             layer.blob = null;

@@ -430,7 +430,7 @@ function renderAudioFileList() {
     audioState.files.forEach(file => {
         const isActive = file.id === audioState.selectedFileId;
         const savings = file.savings || 0;
-        const savingsColor = savings < 0 ? 'text-danger' : (savings > 0 ? 'text-success' : '');
+        const savingsColor = savings < 0 ? 'text-danger' : 'text-success';
 
         const div = document.createElement('div');
         div.className = `file-item p-2 mb-2 rounded border ${isActive ? 'active border-primary' : 'border-secondary'}`;
