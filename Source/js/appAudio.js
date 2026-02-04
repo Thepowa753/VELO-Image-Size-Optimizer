@@ -510,6 +510,16 @@ async function downloadAudioZip() {
 
 // Setup Audio Event Listeners
 function setupAudioEventListeners() {
+    // Cache audio-specific elements that may not have been cached during initial load
+    const audioElementIds = [
+        'btnSelectImages', 'btnAddImg', 'fileInput', 'btnClear', 'btnZip', 
+        'globalFormat', 'filesCountLabel', 'initOverlay', 'appInterface', 'fileListContainer'
+    ];
+    audioElementIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) els[id] = el;
+    });
+
     // File input handlers
     if (els.btnSelectImages) {
         els.btnSelectImages.onclick = () => els.fileInput.click();
