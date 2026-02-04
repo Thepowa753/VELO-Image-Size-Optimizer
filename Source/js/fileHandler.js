@@ -93,12 +93,15 @@ async function processFile(fileEntry, shouldUpdateUI = true) {
     let blob = null;
     
     // 3. Compressione (Tenta OffscreenCanvas per performance, fallback su DOM Canvas)
+    // Note: PNG ignores quality parameter and is always lossless
+    const qualityParam = fileEntry.format === 'png' ? 1 : fileEntry.quality / 100;
+    
     if (window.OffscreenCanvas) {
         try {
             const canvas = new OffscreenCanvas(width, height);
             const ctx = canvas.getContext('2d');
             ctx.drawImage(sourceImage, 0, 0, width, height);
-            blob = await canvas.convertToBlob({ type: mimeType, quality: fileEntry.quality / 100 });
+            blob = await canvas.convertToBlob({ type: mimeType, quality: qualityParam });
         } catch (e) { console.warn('OffscreenCanvas failed, using fallback', e); }
     }
 
@@ -109,7 +112,7 @@ async function processFile(fileEntry, shouldUpdateUI = true) {
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(sourceImage, 0, 0, width, height);
-        blob = await new Promise(resolve => canvas.toBlob(resolve, mimeType, fileEntry.quality / 100));
+        blob = await new Promise(resolve => canvas.toBlob(resolve, mimeType, qualityParam));
     }
 
     // Pulizia memoria bitmap
@@ -142,14 +145,20 @@ async function optimizeFile(fileEntry) {
     // We define layers by complexity/variance of the original pixels.
     // This allows the user to target specific image features (e.g., smooth backgrounds vs textures).
     
-    // Initialize layers if not present or reset if format changed
-    if (!fileEntry.layers || fileEntry.layers.length === 0 || fileEntry.layers[0].format !== fileEntry.format) {
+    // Initialize layers if not present
+    if (!fileEntry.layers || fileEntry.layers.length === 0) {
         fileEntry.layers = [
             { name: "Smooth (Background)", threshold: 4, quality: 95, blob: null, mask: null, pixelCount: 0, format: fileEntry.format },
             { name: "Soft Texture", threshold: 12, quality: 80, blob: null, mask: null, pixelCount: 0, format: fileEntry.format },
             { name: "High Detail", threshold: 30, quality: 60, blob: null, mask: null, pixelCount: 0, format: fileEntry.format },
             { name: "Sharp Edges", threshold: 255, quality: 40, blob: null, mask: null, pixelCount: 0, format: fileEntry.format }
         ];
+    } else if (fileEntry.layers[0].format !== fileEntry.format) {
+        // Format changed, invalidate all blobs but keep masks
+        fileEntry.layers.forEach(layer => {
+            layer.blob = null;
+            layer.format = fileEntry.format;
+        });
     }
 
     await generateComposite(fileEntry);
