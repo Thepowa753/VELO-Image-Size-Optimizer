@@ -34,7 +34,7 @@ function renderFileList() {
         div.onclick = () => { state.selectedFileId = file.id; updateUI(); };
 
         const savingsText = file.savings >= 0 ? `-${file.savings.toFixed(1)}%` : `+${Math.abs(file.savings).toFixed(1)}%`;
-        const savingsClass = file.compressedSize > file.size ? 'text-danger' : 'text-success';
+        const savingsClass = file.savings < 0 ? 'text-danger' : 'text-success';
 
         div.innerHTML = `
             <div class="d-flex justify-content-between align-items-start mb-2">

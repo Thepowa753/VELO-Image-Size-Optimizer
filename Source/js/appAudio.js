@@ -288,7 +288,7 @@ async function trimAudio(fileEntry, startTime, endTime) {
 }
 
 // Draw Waveform
-function drawWaveform(audioBuffer, canvas, startTime = 0, endTime = null) {
+function drawWaveform(audioBuffer, canvas, playbackPosition = 0) {
     if (!canvas || !audioBuffer) return;
 
     const ctx = canvas.getContext('2d');
@@ -349,6 +349,29 @@ function drawWaveform(audioBuffer, canvas, startTime = 0, endTime = null) {
         ctx.lineTo(endX, height);
         ctx.stroke();
     }
+    
+    // Draw playback position indicator
+    if (playbackPosition > 0 && playbackPosition <= audioBuffer.duration) {
+        const duration = audioBuffer.duration;
+        const posX = (playbackPosition / duration) * width;
+        
+        // Draw vertical line
+        ctx.strokeStyle = '#ff0000';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(posX, 0);
+        ctx.lineTo(posX, height);
+        ctx.stroke();
+        
+        // Draw triangle at top
+        ctx.fillStyle = '#ff0000';
+        ctx.beginPath();
+        ctx.moveTo(posX, 0);
+        ctx.lineTo(posX - 5, 8);
+        ctx.lineTo(posX + 5, 8);
+        ctx.closePath();
+        ctx.fill();
+    }
 }
 
 // Update Audio UI
@@ -362,6 +385,18 @@ function updateAudioUI() {
         const canvas = document.getElementById('waveformCanvas');
         if (canvas) {
             drawWaveform(selected.audioBuffer, canvas);
+        }
+        
+        // Update trim input defaults
+        const trimStart = document.getElementById('trimStart');
+        const trimEnd = document.getElementById('trimEnd');
+        if (trimStart) {
+            trimStart.value = 0;
+            trimStart.max = selected.duration;
+        }
+        if (trimEnd) {
+            trimEnd.value = selected.duration.toFixed(1);
+            trimEnd.max = selected.duration;
         }
     }
     
@@ -395,7 +430,7 @@ function renderAudioFileList() {
     audioState.files.forEach(file => {
         const isActive = file.id === audioState.selectedFileId;
         const savings = file.savings || 0;
-        const savingsColor = savings > 0 ? 'text-success' : '';
+        const savingsColor = savings < 0 ? 'text-danger' : (savings > 0 ? 'text-success' : '');
 
         const div = document.createElement('div');
         div.className = `file-item p-2 mb-2 rounded border ${isActive ? 'active border-primary' : 'border-secondary'}`;
@@ -407,7 +442,7 @@ function renderAudioFileList() {
                     <div class="small text-truncate" title="${file.name}">${file.name}</div>
                     <div class="small text-white-50">
                         ${formatFileSize(file.size)} → ${formatFileSize(file.processedSize)}
-                        <span class="${savingsColor}">(${savings > 0 ? '-' : ''}${Math.abs(savings)}%)</span>
+                        <span class="${savingsColor}">(${savings >= 0 ? '-' : '+'}${Math.abs(savings.toFixed(1))}%)</span>
                     </div>
                     <div class="small text-white-50">${formatDuration(file.duration)}</div>
                 </div>
@@ -624,8 +659,11 @@ function setupAudioEventListeners() {
         const audioProgressBar = document.getElementById('audioProgressBar');
         const audioCurrentTime = document.getElementById('audioCurrentTime');
         const audioDuration = document.getElementById('audioDuration');
+        const canvas = document.getElementById('waveformCanvas');
         
         if (!audioProgressBar || !audioCurrentTime || !audioDuration) return;
+        
+        const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
         
         if (isPlaying && currentSource) {
             const ctx = getAudioContext();
@@ -635,11 +673,15 @@ function setupAudioEventListeners() {
             audioProgressBar.value = Math.min(progress, 100);
             audioCurrentTime.textContent = formatDuration(elapsed);
             audioDuration.textContent = formatDuration(playbackDuration);
+            
+            // Update waveform with playback position
+            if (selected && selected.audioBuffer && canvas) {
+                drawWaveform(selected.audioBuffer, canvas, elapsed);
+            }
         } else {
             audioProgressBar.value = 0;
             audioCurrentTime.textContent = '0:00';
             
-            const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
             if (selected && selected.duration) {
                 audioDuration.textContent = formatDuration(selected.duration);
             } else {
@@ -660,6 +702,13 @@ function setupAudioEventListeners() {
         }
         isPlaying = false;
         updatePlaybackProgress();
+        
+        // Redraw waveform without playback indicator
+        const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
+        const canvas = document.getElementById('waveformCanvas');
+        if (selected && selected.audioBuffer && canvas) {
+            drawWaveform(selected.audioBuffer, canvas, 0);
+        }
     }
     
     const btnPlayOriginal = document.getElementById('btnPlayOriginal');
