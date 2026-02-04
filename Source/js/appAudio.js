@@ -393,7 +393,7 @@ function updateAudioUI() {
         const trimStart = document.getElementById('trimStart');
         const trimEnd = document.getElementById('trimEnd');
         if (trimStart) {
-            trimStart.value = 0;
+            trimStart.value = "0";
             trimStart.max = selected.duration;
         }
         if (trimEnd) {
