@@ -175,12 +175,10 @@ function setupEventListeners() {
     document.getElementById('btnLoadImageCompressor').addEventListener('click', () => {
         loadComponent('components/ImageCompressor.html');
     });
-    // document.getElementById('btnLoadAudioCompressor').addEventListener('click', () => {
-    //     loadComponent('components/AudioCompressor.html');
-    // });
-    // document.getElementById('btnLoadVideoCompressor').addEventListener('click', () => {
-    //     loadComponent('components/AudioCompressor.html');
-    // });
+    
+    document.getElementById('btnLoadAudioCompressor').addEventListener('click', () => {
+        loadComponent('components/AudioCompressor.html');
+    });
 }
 
 // Comparison Slider Functionality
