@@ -34,6 +34,7 @@ function renderFileList() {
         div.onclick = () => { state.selectedFileId = file.id; updateUI(); };
 
         const savingsText = file.savings >= 0 ? `-${file.savings.toFixed(1)}%` : `+${Math.abs(file.savings).toFixed(1)}%`;
+        // Treat 0 or positive savings as success (green), negative as failure (red)
         const savingsClass = file.savings < 0 ? 'text-danger' : 'text-success';
 
         div.innerHTML = `

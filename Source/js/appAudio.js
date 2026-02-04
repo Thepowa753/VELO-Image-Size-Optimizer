@@ -432,6 +432,7 @@ function renderAudioFileList() {
     audioState.files.forEach(file => {
         const isActive = file.id === audioState.selectedFileId;
         const savings = file.savings || 0;
+        // Treat 0 or positive savings as success (green), negative as failure (red)
         const savingsColor = savings < 0 ? 'text-danger' : 'text-success';
 
         const div = document.createElement('div');
