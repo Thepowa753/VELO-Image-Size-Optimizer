@@ -146,10 +146,19 @@ async function processFile(fileEntry, shouldUpdateUI = true) {
             else if (blob.type === 'image/webp') fileEntry.format = 'webp';
         }
         
-        fileEntry.compressedBlob = blob;
-        fileEntry.compressedUrl = URL.createObjectURL(blob);
-        fileEntry.compressedSize = blob.size;
-        fileEntry.savings = 100 - ((blob.size / fileEntry.size) * 100);
+        // Only use compressed file if it's smaller than original
+        if (blob.size < fileEntry.size) {
+            fileEntry.compressedBlob = blob;
+            fileEntry.compressedUrl = URL.createObjectURL(blob);
+            fileEntry.compressedSize = blob.size;
+            fileEntry.savings = 100 - ((blob.size / fileEntry.size) * 100);
+        } else {
+            // Keep original file if compressed is larger
+            fileEntry.compressedBlob = fileEntry.originalFile;
+            fileEntry.compressedUrl = fileEntry.originalUrl;
+            fileEntry.compressedSize = fileEntry.size;
+            fileEntry.savings = 0;
+        }
 
         if (shouldUpdateUI) updateUI();
     }
