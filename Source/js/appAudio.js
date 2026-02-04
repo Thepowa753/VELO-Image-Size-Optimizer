@@ -61,7 +61,8 @@ async function handleAudioFiles(fileList) {
             processedUrl: null,
             processedSize: 0,
             savings: 0,
-            audioBuffer: null
+            audioBuffer: null,
+            originalAudioBuffer: null // Store original buffer for reset
         };
 
         audioState.files.push(fileEntry);
@@ -80,7 +81,13 @@ async function loadAudioBuffer(fileEntry) {
     try {
         const arrayBuffer = await fileEntry.originalFile.arrayBuffer();
         const ctx = getAudioContext();
-        fileEntry.audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+        const decodedBuffer = await ctx.decodeAudioData(arrayBuffer);
+        
+        // Create a copy of the buffer to preserve original
+        fileEntry.originalAudioBuffer = decodedBuffer;
+        
+        // Create working copy
+        fileEntry.audioBuffer = copyAudioBuffer(decodedBuffer);
         fileEntry.duration = fileEntry.audioBuffer.duration;
         
         // Initial processing
@@ -89,6 +96,24 @@ async function loadAudioBuffer(fileEntry) {
         console.error('Error loading audio:', error);
         alert(`Error loading ${fileEntry.name}: ${error.message}`);
     }
+}
+
+// Copy Audio Buffer
+function copyAudioBuffer(buffer) {
+    const ctx = getAudioContext();
+    const copy = ctx.createBuffer(
+        buffer.numberOfChannels,
+        buffer.length,
+        buffer.sampleRate
+    );
+    
+    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+        const sourceData = buffer.getChannelData(channel);
+        const copyData = copy.getChannelData(channel);
+        copyData.set(sourceData);
+    }
+    
+    return copy;
 }
 
 // Process Audio File (Compression, Format Conversion)
@@ -106,16 +131,27 @@ async function processAudioFile(fileEntry) {
         );
 
         // Convert to target format
+        let processedBlob = null;
         if (fileEntry.format === 'mp3') {
-            fileEntry.processedBlob = await encodeToMP3(processedBuffer);
+            processedBlob = await encodeToMP3(processedBuffer);
         } else if (fileEntry.format === 'wav') {
-            fileEntry.processedBlob = await encodeToWAV(processedBuffer);
+            processedBlob = await encodeToWAV(processedBuffer);
         }
 
-        if (fileEntry.processedBlob) {
-            fileEntry.processedUrl = URL.createObjectURL(fileEntry.processedBlob);
-            fileEntry.processedSize = fileEntry.processedBlob.size;
-            fileEntry.savings = Math.round((1 - fileEntry.processedSize / fileEntry.size) * 100);
+        if (processedBlob) {
+            // Only use processed file if it's smaller than original
+            if (processedBlob.size < fileEntry.size) {
+                fileEntry.processedBlob = processedBlob;
+                fileEntry.processedUrl = URL.createObjectURL(processedBlob);
+                fileEntry.processedSize = processedBlob.size;
+                fileEntry.savings = Math.round((1 - fileEntry.processedSize / fileEntry.size) * 100);
+            } else {
+                // Keep original file if processed is larger
+                fileEntry.processedBlob = fileEntry.originalFile;
+                fileEntry.processedUrl = fileEntry.originalUrl;
+                fileEntry.processedSize = fileEntry.size;
+                fileEntry.savings = 0;
+            }
         }
 
         updateAudioUI();
@@ -286,6 +322,23 @@ async function trimAudio(fileEntry, startTime, endTime) {
     // Reprocess with new buffer
     await processAudioFile(fileEntry);
 }
+
+// Reset Trim to Original
+async function resetTrim(fileEntry) {
+    if (!fileEntry || !fileEntry.originalAudioBuffer) return;
+    
+    // Restore original audio buffer by creating a fresh copy
+    fileEntry.audioBuffer = copyAudioBuffer(fileEntry.originalAudioBuffer);
+    fileEntry.duration = fileEntry.originalAudioBuffer.duration;
+    
+    // Reset trim settings
+    audioState.trimSettings.start = 0;
+    audioState.trimSettings.end = 0;
+    
+    // Reprocess with original buffer
+    await processAudioFile(fileEntry);
+}
+
 
 // Draw Waveform with optional playback position indicator
 // Pass playbackPosition = -1 to hide the playback indicator
@@ -647,6 +700,18 @@ function setupAudioEventListeners() {
             } else {
                 alert('Invalid trim range');
             }
+        };
+    }
+
+    // Reset trim controls
+    const btnResetTrim = document.getElementById('btnResetTrim');
+    if (btnResetTrim) {
+        btnResetTrim.onclick = async () => {
+            const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
+            if (!selected) return;
+
+            await resetTrim(selected);
+            updateAudioUI();
         };
     }
 
