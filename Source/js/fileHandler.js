@@ -145,8 +145,8 @@ async function optimizeFile(fileEntry) {
     // We define layers by complexity/variance of the original pixels.
     // This allows the user to target specific image features (e.g., smooth backgrounds vs textures).
     
-    // Initialize layers if not present or reset if format changed
-    if (!fileEntry.layers || fileEntry.layers.length === 0 || (fileEntry.layers[0] && fileEntry.layers[0].format !== fileEntry.format)) {
+    // Initialize layers if not present
+    if (!fileEntry.layers || fileEntry.layers.length === 0) {
         fileEntry.layers = [
             { name: "Smooth (Background)", threshold: 4, quality: 95, blob: null, mask: null, pixelCount: 0, format: fileEntry.format },
             { name: "Soft Texture", threshold: 12, quality: 80, blob: null, mask: null, pixelCount: 0, format: fileEntry.format },

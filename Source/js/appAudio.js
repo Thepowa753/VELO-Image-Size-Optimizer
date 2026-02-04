@@ -442,7 +442,7 @@ function renderAudioFileList() {
                     <div class="small text-truncate" title="${file.name}">${file.name}</div>
                     <div class="small text-white-50">
                         ${formatFileSize(file.size)} → ${formatFileSize(file.processedSize)}
-                        <span class="${savingsColor}">(${savings >= 0 ? '-' : '+'}${Math.abs(savings.toFixed(1))}%)</span>
+                        <span class="${savingsColor}">(${savings >= 0 ? '-' : '+'}${Math.abs(savings).toFixed(1)}%)</span>
                     </div>
                     <div class="small text-white-50">${formatDuration(file.duration)}</div>
                 </div>
