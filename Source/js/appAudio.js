@@ -201,7 +201,9 @@ async function encodeToWAV(audioBuffer) {
 async function encodeToMP3(audioBuffer) {
     // Check if lamejs is available
     if (typeof lamejs === 'undefined') {
-        console.warn('lamejs not available, falling back to WAV');
+        console.warn('lamejs not available, using WAV format instead');
+        // For now, return WAV when MP3 encoding is not available
+        // In production, you would need to include the lamejs library
         return encodeToWAV(audioBuffer);
     }
 
@@ -213,23 +215,27 @@ async function encodeToMP3(audioBuffer) {
     const mp3Data = [];
 
     const sampleBlockSize = 1152;
+    const leftChannel = audioBuffer.getChannelData(0);
+    const rightChannel = channels > 1 ? audioBuffer.getChannelData(1) : leftChannel;
     
-    for (let channel = 0; channel < channels; channel++) {
-        const samples = audioBuffer.getChannelData(channel);
-        const sampleBuffer = new Int16Array(samples.length);
-        
-        for (let i = 0; i < samples.length; i++) {
-            sampleBuffer[i] = samples[i] < 0 ? samples[i] * 32768 : samples[i] * 32767;
-        }
+    // Convert to Int16
+    const leftSamples = new Int16Array(leftChannel.length);
+    const rightSamples = new Int16Array(rightChannel.length);
+    
+    for (let i = 0; i < leftChannel.length; i++) {
+        leftSamples[i] = leftChannel[i] < 0 ? leftChannel[i] * 32768 : leftChannel[i] * 32767;
+        rightSamples[i] = rightChannel[i] < 0 ? rightChannel[i] * 32768 : rightChannel[i] * 32767;
+    }
 
-        for (let i = 0; i < sampleBuffer.length; i += sampleBlockSize) {
-            const left = sampleBuffer.subarray(i, i + sampleBlockSize);
-            const mp3buf = channels === 1 ? 
-                mp3encoder.encodeBuffer(left) : 
-                mp3encoder.encodeBuffer(left, left);
-            if (mp3buf.length > 0) {
-                mp3Data.push(mp3buf);
-            }
+    // Encode in blocks
+    for (let i = 0; i < leftSamples.length; i += sampleBlockSize) {
+        const leftChunk = leftSamples.subarray(i, i + sampleBlockSize);
+        const rightChunk = rightSamples.subarray(i, i + sampleBlockSize);
+        const mp3buf = channels === 1 ? 
+            mp3encoder.encodeBuffer(leftChunk) : 
+            mp3encoder.encodeBuffer(leftChunk, rightChunk);
+        if (mp3buf.length > 0) {
+            mp3Data.push(mp3buf);
         }
     }
 
