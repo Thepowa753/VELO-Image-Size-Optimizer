@@ -942,8 +942,9 @@ function setupAudioEventListeners() {
             
             const zoom = audioState.waveformZoom;
             const rect = waveformCanvas.getBoundingClientRect();
+            const canvasWidth = waveformCanvas.width;
             const mouseX = e.clientX - rect.left;
-            const mouseXRatio = mouseX / waveformCanvas.width;
+            const mouseXRatio = mouseX / canvasWidth;
             
             // Calculate zoom change
             const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
@@ -951,17 +952,17 @@ function setupAudioEventListeners() {
             
             if (newScale !== zoom.scale) {
                 // Adjust offset to zoom towards mouse position
-                const oldVisibleWidth = waveformCanvas.width / zoom.scale;
-                const newVisibleWidth = waveformCanvas.width / newScale;
+                const oldVisibleWidth = canvasWidth / zoom.scale;
+                const newVisibleWidth = canvasWidth / newScale;
                 const oldMouseTime = (zoom.offsetX + mouseXRatio * oldVisibleWidth);
                 const newOffsetX = oldMouseTime - mouseXRatio * newVisibleWidth;
                 
                 zoom.scale = newScale;
-                zoom.offsetX = Math.max(0, Math.min(waveformCanvas.width - newVisibleWidth, newOffsetX));
+                zoom.offsetX = Math.max(0, Math.min(canvasWidth - newVisibleWidth, newOffsetX));
                 
                 // Redraw waveform with new zoom
-                const playbackPos = isPlaying ? (getAudioContext().currentTime - playbackStartTime) : -1;
-                drawWaveform(selected.audioBuffer, waveformCanvas, playbackPos);
+                const playbackPosition = isPlaying ? (getAudioContext().currentTime - playbackStartTime) : -1;
+                drawWaveform(selected.audioBuffer, waveformCanvas, playbackPosition);
             }
         });
         
@@ -971,14 +972,15 @@ function setupAudioEventListeners() {
             if (!selected || !selected.audioBuffer) return;
             
             const rect = waveformCanvas.getBoundingClientRect();
+            const canvasWidth = waveformCanvas.width;
             const clickX = e.clientX - rect.left;
-            const clickXRatio = clickX / waveformCanvas.width;
+            const clickXRatio = clickX / canvasWidth;
             
             // Calculate time position based on zoom
             const zoom = audioState.waveformZoom;
             const duration = selected.audioBuffer.duration;
             const visibleDuration = duration / zoom.scale;
-            const startTime = (zoom.offsetX / waveformCanvas.width) * duration;
+            const startTime = (zoom.offsetX / canvasWidth) * duration;
             const clickTime = startTime + (clickXRatio * visibleDuration);
             
             // Stop current playback if any
@@ -990,11 +992,10 @@ function setupAudioEventListeners() {
                 if (btnPlayProcessed) btnPlayProcessed.textContent = 'Play Processed';
             }
             
-            // Start playback from clicked position (play original by default)
+            // Start playback from clicked position using the already-decoded buffer
             try {
-                const arrayBuffer = await selected.originalFile.arrayBuffer();
                 const ctx = getAudioContext();
-                const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+                const audioBuffer = selected.audioBuffer;
                 
                 currentSource = ctx.createBufferSource();
                 currentSource.buffer = audioBuffer;
