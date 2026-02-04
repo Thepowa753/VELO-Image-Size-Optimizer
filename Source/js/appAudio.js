@@ -81,8 +81,13 @@ async function loadAudioBuffer(fileEntry) {
     try {
         const arrayBuffer = await fileEntry.originalFile.arrayBuffer();
         const ctx = getAudioContext();
-        fileEntry.audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-        fileEntry.originalAudioBuffer = fileEntry.audioBuffer; // Store original
+        const decodedBuffer = await ctx.decodeAudioData(arrayBuffer);
+        
+        // Create a copy of the buffer to preserve original
+        fileEntry.originalAudioBuffer = decodedBuffer;
+        
+        // Create working copy
+        fileEntry.audioBuffer = copyAudioBuffer(decodedBuffer);
         fileEntry.duration = fileEntry.audioBuffer.duration;
         
         // Initial processing
@@ -91,6 +96,24 @@ async function loadAudioBuffer(fileEntry) {
         console.error('Error loading audio:', error);
         alert(`Error loading ${fileEntry.name}: ${error.message}`);
     }
+}
+
+// Copy Audio Buffer
+function copyAudioBuffer(buffer) {
+    const ctx = getAudioContext();
+    const copy = ctx.createBuffer(
+        buffer.numberOfChannels,
+        buffer.length,
+        buffer.sampleRate
+    );
+    
+    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+        const sourceData = buffer.getChannelData(channel);
+        const copyData = copy.getChannelData(channel);
+        copyData.set(sourceData);
+    }
+    
+    return copy;
 }
 
 // Process Audio File (Compression, Format Conversion)
@@ -304,8 +327,8 @@ async function trimAudio(fileEntry, startTime, endTime) {
 async function resetTrim(fileEntry) {
     if (!fileEntry || !fileEntry.originalAudioBuffer) return;
     
-    // Restore original audio buffer
-    fileEntry.audioBuffer = fileEntry.originalAudioBuffer;
+    // Restore original audio buffer by creating a fresh copy
+    fileEntry.audioBuffer = copyAudioBuffer(fileEntry.originalAudioBuffer);
     fileEntry.duration = fileEntry.originalAudioBuffer.duration;
     
     // Reset trim settings
