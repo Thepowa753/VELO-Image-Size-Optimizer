@@ -287,8 +287,10 @@ async function trimAudio(fileEntry, startTime, endTime) {
     await processAudioFile(fileEntry);
 }
 
-// Draw Waveform
-function drawWaveform(audioBuffer, canvas, playbackPosition = 0) {
+// Draw Waveform with optional playback position indicator
+// Pass playbackPosition = -1 to hide the playback indicator
+// Pass playbackPosition >= 0 to show indicator at that position (in seconds)
+function drawWaveform(audioBuffer, canvas, playbackPosition = -1) {
     if (!canvas || !audioBuffer) return;
 
     const ctx = canvas.getContext('2d');
@@ -350,8 +352,8 @@ function drawWaveform(audioBuffer, canvas, playbackPosition = 0) {
         ctx.stroke();
     }
     
-    // Draw playback position indicator
-    if (playbackPosition > 0 && playbackPosition <= audioBuffer.duration) {
+    // Draw playback position indicator (pass -1 to hide indicator)
+    if (playbackPosition >= 0 && playbackPosition <= audioBuffer.duration) {
         const duration = audioBuffer.duration;
         const posX = (playbackPosition / duration) * width;
         
@@ -384,7 +386,7 @@ function updateAudioUI() {
     if (selected && selected.audioBuffer) {
         const canvas = document.getElementById('waveformCanvas');
         if (canvas) {
-            drawWaveform(selected.audioBuffer, canvas);
+            drawWaveform(selected.audioBuffer, canvas, -1);
         }
         
         // Update trim input defaults
@@ -707,7 +709,7 @@ function setupAudioEventListeners() {
         const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
         const canvas = document.getElementById('waveformCanvas');
         if (selected && selected.audioBuffer && canvas) {
-            drawWaveform(selected.audioBuffer, canvas, 0);
+            drawWaveform(selected.audioBuffer, canvas, -1);
         }
     }
     
