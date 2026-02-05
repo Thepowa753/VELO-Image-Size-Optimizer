@@ -856,6 +856,7 @@ function setupAudioEventListeners() {
     let playbackDuration = 0;
     let playbackInterval = null;
     let isPlaying = false;
+    let currentPlaybackPosition = 0; // Track current position in seconds
     
     // Update progress bar and time display
     function updatePlaybackProgress() {
@@ -871,6 +872,7 @@ function setupAudioEventListeners() {
         if (isPlaying && currentSource) {
             const ctx = getAudioContext();
             const elapsed = ctx.currentTime - playbackStartTime;
+            currentPlaybackPosition = elapsed; // Update current position
             const progress = (elapsed / playbackDuration) * 100;
             
             audioProgressBar.value = Math.min(progress, 100);
@@ -882,8 +884,8 @@ function setupAudioEventListeners() {
                 drawWaveform(selected.audioBuffer, canvas, elapsed, -1);
             }
         } else {
-            audioProgressBar.value = 0;
-            audioCurrentTime.textContent = '0:00';
+            audioProgressBar.value = (currentPlaybackPosition / playbackDuration) * 100 || 0;
+            audioCurrentTime.textContent = formatDuration(currentPlaybackPosition);
             
             if (selected && selected.duration) {
                 audioDuration.textContent = formatDuration(selected.duration);
@@ -1022,10 +1024,10 @@ function setupAudioEventListeners() {
                     if (btnPlayProcessed) btnPlayProcessed.textContent = 'Play Processed';
                 }
                 
-                // Calculate new position
-                const ctx = getAudioContext();
-                const currentTime = wasPlaying ? (ctx.currentTime - playbackStartTime) : 0;
-                const newTime = Math.max(0, currentTime - 10);
+                // Calculate new position - use currentPlaybackPosition instead of calculating
+                const newTime = Math.max(0, currentPlaybackPosition - 10);
+                currentPlaybackPosition = newTime;
+                updatePlaybackProgress();
                 
                 // If was playing, restart from new position
                 if (wasPlaying) {
@@ -1047,10 +1049,8 @@ function setupAudioEventListeners() {
                 // If already playing, do nothing
                 if (isPlaying && currentSource) return;
                 
-                // Play from current position or start
-                const ctx = getAudioContext();
-                const startTime = currentSource ? (ctx.currentTime - playbackStartTime) : 0;
-                await playFromPosition(selected, startTime);
+                // Play from current position
+                await playFromPosition(selected, currentPlaybackPosition);
             } catch (error) {
                 console.error('Error in btnPlay:', error);
             }
@@ -1062,11 +1062,17 @@ function setupAudioEventListeners() {
         btnPause.onclick = () => {
             try {
                 if (currentSource && isPlaying) {
+                    // Save current position before stopping
+                    const ctx = getAudioContext();
+                    currentPlaybackPosition = ctx.currentTime - playbackStartTime;
+                    
                     stopPlayback();
                     const btnPlayOriginal = document.getElementById('btnPlayOriginal');
                     if (btnPlayOriginal) btnPlayOriginal.textContent = 'Play Original';
                     const btnPlayProcessed = document.getElementById('btnPlayProcessed');
                     if (btnPlayProcessed) btnPlayProcessed.textContent = 'Play Processed';
+                    
+                    updatePlaybackProgress();
                 }
             } catch (error) {
                 console.error('Error in btnPause:', error);
@@ -1087,8 +1093,8 @@ function setupAudioEventListeners() {
                     if (btnPlayProcessed) btnPlayProcessed.textContent = 'Play Processed';
                 }
                 
-                // Reset playback start time to 0
-                playbackStartTime = 0;
+                // Reset position to 0
+                currentPlaybackPosition = 0;
                 updatePlaybackProgress();
             } catch (error) {
                 console.error('Error in btnStop:', error);
@@ -1105,10 +1111,12 @@ function setupAudioEventListeners() {
                 
                 // Stop current playback
                 const wasPlaying = isPlaying;
-                const ctx = getAudioContext();
-                const currentTime = wasPlaying ? (ctx.currentTime - playbackStartTime) : 0;
                 
                 if (currentSource) {
+                    // Save current position before stopping
+                    const ctx = getAudioContext();
+                    currentPlaybackPosition = ctx.currentTime - playbackStartTime;
+                    
                     stopPlayback();
                     const btnPlayOriginal = document.getElementById('btnPlayOriginal');
                     if (btnPlayOriginal) btnPlayOriginal.textContent = 'Play Original';
@@ -1118,13 +1126,17 @@ function setupAudioEventListeners() {
                 
                 // Calculate new position
                 const duration = selected.audioBuffer.duration;
-                const newTime = currentTime + 10;
+                const newTime = currentPlaybackPosition + 10;
                 
                 // If less than 10s remaining, stop
                 if (newTime >= duration) {
-                    stopPlayback();
+                    currentPlaybackPosition = 0;
+                    updatePlaybackProgress();
                     return;
                 }
+                
+                currentPlaybackPosition = newTime;
+                updatePlaybackProgress();
                 
                 // If was playing, restart from new position
                 if (wasPlaying) {
@@ -1152,9 +1164,6 @@ function setupAudioEventListeners() {
             
             currentSource.start(0, startTime);
             
-            const btnPlayOriginal = document.getElementById('btnPlayOriginal');
-            if (btnPlayOriginal) btnPlayOriginal.textContent = 'Stop';
-            
             updatePlaybackProgress();
             
             // Update progress bar every 100ms
@@ -1162,7 +1171,8 @@ function setupAudioEventListeners() {
             
             currentSource.onended = () => {
                 stopPlayback();
-                if (btnPlayOriginal) btnPlayOriginal.textContent = 'Play Original';
+                currentPlaybackPosition = 0;
+                updatePlaybackProgress();
             };
         } catch (error) {
             console.error('Error playing from position:', error);
