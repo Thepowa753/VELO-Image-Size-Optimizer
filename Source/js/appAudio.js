@@ -1004,6 +1004,171 @@ function setupAudioEventListeners() {
         };
     }
     
+    // New Playback Control Buttons
+    const btnBackward10 = document.getElementById('btnBackward10');
+    if (btnBackward10) {
+        btnBackward10.onclick = () => {
+            try {
+                const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
+                if (!selected || !selected.audioBuffer) return;
+                
+                // Stop current playback
+                const wasPlaying = isPlaying;
+                if (currentSource) {
+                    stopPlayback();
+                    const btnPlayOriginal = document.getElementById('btnPlayOriginal');
+                    if (btnPlayOriginal) btnPlayOriginal.textContent = 'Play Original';
+                    const btnPlayProcessed = document.getElementById('btnPlayProcessed');
+                    if (btnPlayProcessed) btnPlayProcessed.textContent = 'Play Processed';
+                }
+                
+                // Calculate new position
+                const ctx = getAudioContext();
+                const currentTime = wasPlaying ? (ctx.currentTime - playbackStartTime) : 0;
+                const newTime = Math.max(0, currentTime - 10);
+                
+                // If was playing, restart from new position
+                if (wasPlaying) {
+                    playFromPosition(selected, newTime);
+                }
+            } catch (error) {
+                console.error('Error in btnBackward10:', error);
+            }
+        };
+    }
+    
+    const btnPlay = document.getElementById('btnPlay');
+    if (btnPlay) {
+        btnPlay.onclick = async () => {
+            try {
+                const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
+                if (!selected || !selected.audioBuffer) return;
+                
+                // If already playing, do nothing
+                if (isPlaying && currentSource) return;
+                
+                // Play from current position or start
+                const ctx = getAudioContext();
+                const startTime = currentSource ? (ctx.currentTime - playbackStartTime) : 0;
+                await playFromPosition(selected, startTime);
+            } catch (error) {
+                console.error('Error in btnPlay:', error);
+            }
+        };
+    }
+    
+    const btnPause = document.getElementById('btnPause');
+    if (btnPause) {
+        btnPause.onclick = () => {
+            try {
+                if (currentSource && isPlaying) {
+                    stopPlayback();
+                    const btnPlayOriginal = document.getElementById('btnPlayOriginal');
+                    if (btnPlayOriginal) btnPlayOriginal.textContent = 'Play Original';
+                    const btnPlayProcessed = document.getElementById('btnPlayProcessed');
+                    if (btnPlayProcessed) btnPlayProcessed.textContent = 'Play Processed';
+                }
+            } catch (error) {
+                console.error('Error in btnPause:', error);
+            }
+        };
+    }
+    
+    const btnStop = document.getElementById('btnStop');
+    if (btnStop) {
+        btnStop.onclick = () => {
+            try {
+                // Stop playback and reset to 0s
+                if (currentSource) {
+                    stopPlayback();
+                    const btnPlayOriginal = document.getElementById('btnPlayOriginal');
+                    if (btnPlayOriginal) btnPlayOriginal.textContent = 'Play Original';
+                    const btnPlayProcessed = document.getElementById('btnPlayProcessed');
+                    if (btnPlayProcessed) btnPlayProcessed.textContent = 'Play Processed';
+                }
+                
+                // Reset playback start time to 0
+                playbackStartTime = 0;
+                updatePlaybackProgress();
+            } catch (error) {
+                console.error('Error in btnStop:', error);
+            }
+        };
+    }
+    
+    const btnForward10 = document.getElementById('btnForward10');
+    if (btnForward10) {
+        btnForward10.onclick = () => {
+            try {
+                const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
+                if (!selected || !selected.audioBuffer) return;
+                
+                // Stop current playback
+                const wasPlaying = isPlaying;
+                const ctx = getAudioContext();
+                const currentTime = wasPlaying ? (ctx.currentTime - playbackStartTime) : 0;
+                
+                if (currentSource) {
+                    stopPlayback();
+                    const btnPlayOriginal = document.getElementById('btnPlayOriginal');
+                    if (btnPlayOriginal) btnPlayOriginal.textContent = 'Play Original';
+                    const btnPlayProcessed = document.getElementById('btnPlayProcessed');
+                    if (btnPlayProcessed) btnPlayProcessed.textContent = 'Play Processed';
+                }
+                
+                // Calculate new position
+                const duration = selected.audioBuffer.duration;
+                const newTime = currentTime + 10;
+                
+                // If less than 10s remaining, stop
+                if (newTime >= duration) {
+                    stopPlayback();
+                    return;
+                }
+                
+                // If was playing, restart from new position
+                if (wasPlaying) {
+                    playFromPosition(selected, newTime);
+                }
+            } catch (error) {
+                console.error('Error in btnForward10:', error);
+            }
+        };
+    }
+    
+    // Helper function to play from a specific position
+    async function playFromPosition(fileEntry, startTime) {
+        try {
+            const ctx = getAudioContext();
+            const audioBuffer = fileEntry.audioBuffer;
+            
+            currentSource = ctx.createBufferSource();
+            currentSource.buffer = audioBuffer;
+            currentSource.connect(ctx.destination);
+            
+            playbackStartTime = ctx.currentTime - startTime;
+            playbackDuration = audioBuffer.duration;
+            isPlaying = true;
+            
+            currentSource.start(0, startTime);
+            
+            const btnPlayOriginal = document.getElementById('btnPlayOriginal');
+            if (btnPlayOriginal) btnPlayOriginal.textContent = 'Stop';
+            
+            updatePlaybackProgress();
+            
+            // Update progress bar every 100ms
+            playbackInterval = setInterval(updatePlaybackProgress, 100);
+            
+            currentSource.onended = () => {
+                stopPlayback();
+                if (btnPlayOriginal) btnPlayOriginal.textContent = 'Play Original';
+            };
+        } catch (error) {
+            console.error('Error playing from position:', error);
+        }
+    }
+    
     // Handle progress bar - disable during playback (seeking not implemented)
     const audioProgressBar = document.getElementById('audioProgressBar');
     if (audioProgressBar) {
