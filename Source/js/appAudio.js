@@ -856,6 +856,26 @@ function setupAudioEventListeners() {
     let playbackDuration = 0;
     let playbackInterval = null;
     let isPlaying = false;
+    let currentPlaybackPosition = 0; // Track current position in seconds
+    
+    // Constants for playback control
+    const SKIP_SECONDS = 10;
+    
+    // Helper function to save current playback position
+    function saveCurrentPosition() {
+        if (isPlaying && currentSource) {
+            const ctx = getAudioContext();
+            currentPlaybackPosition = ctx.currentTime - playbackStartTime;
+        }
+    }
+    
+    // Helper function to reset play button text
+    function resetPlayButtonText() {
+        const btnPlayOriginal = document.getElementById('btnPlayOriginal');
+        if (btnPlayOriginal) btnPlayOriginal.textContent = 'Play Original';
+        const btnPlayProcessed = document.getElementById('btnPlayProcessed');
+        if (btnPlayProcessed) btnPlayProcessed.textContent = 'Play Processed';
+    }
     
     // Update progress bar and time display
     function updatePlaybackProgress() {
@@ -871,6 +891,7 @@ function setupAudioEventListeners() {
         if (isPlaying && currentSource) {
             const ctx = getAudioContext();
             const elapsed = ctx.currentTime - playbackStartTime;
+            currentPlaybackPosition = elapsed; // Update current position
             const progress = (elapsed / playbackDuration) * 100;
             
             audioProgressBar.value = Math.min(progress, 100);
@@ -882,8 +903,8 @@ function setupAudioEventListeners() {
                 drawWaveform(selected.audioBuffer, canvas, elapsed, -1);
             }
         } else {
-            audioProgressBar.value = 0;
-            audioCurrentTime.textContent = '0:00';
+            audioProgressBar.value = (currentPlaybackPosition / playbackDuration) * 100 || 0;
+            audioCurrentTime.textContent = formatDuration(currentPlaybackPosition);
             
             if (selected && selected.duration) {
                 audioDuration.textContent = formatDuration(selected.duration);
@@ -1002,6 +1023,165 @@ function setupAudioEventListeners() {
                 console.error('Error playing audio:', error);
             }
         };
+    }
+    
+    // New Playback Control Buttons
+    const btnBackward10 = document.getElementById('btnBackward10');
+    if (btnBackward10) {
+        btnBackward10.onclick = () => {
+            try {
+                const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
+                if (!selected || !selected.audioBuffer) return;
+                
+                // Stop current playback
+                const wasPlaying = isPlaying;
+                if (currentSource) {
+                    stopPlayback();
+                    resetPlayButtonText();
+                }
+                
+                // Calculate new position - use currentPlaybackPosition instead of calculating
+                const newTime = Math.max(0, currentPlaybackPosition - SKIP_SECONDS);
+                currentPlaybackPosition = newTime;
+                updatePlaybackProgress();
+                
+                // If was playing, restart from new position
+                if (wasPlaying) {
+                    playFromPosition(selected, newTime);
+                }
+            } catch (error) {
+                console.error('Error in btnBackward10:', error);
+            }
+        };
+    }
+    
+    const btnPlay = document.getElementById('btnPlay');
+    if (btnPlay) {
+        btnPlay.onclick = async () => {
+            try {
+                const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
+                if (!selected || !selected.audioBuffer) return;
+                
+                // If already playing, do nothing
+                if (isPlaying && currentSource) return;
+                
+                // Play from current position
+                await playFromPosition(selected, currentPlaybackPosition);
+            } catch (error) {
+                console.error('Error in btnPlay:', error);
+            }
+        };
+    }
+    
+    const btnPause = document.getElementById('btnPause');
+    if (btnPause) {
+        btnPause.onclick = () => {
+            try {
+                if (currentSource && isPlaying) {
+                    // Save current position before stopping
+                    saveCurrentPosition();
+                    
+                    stopPlayback();
+                    resetPlayButtonText();
+                    
+                    updatePlaybackProgress();
+                }
+            } catch (error) {
+                console.error('Error in btnPause:', error);
+            }
+        };
+    }
+    
+    const btnStop = document.getElementById('btnStop');
+    if (btnStop) {
+        btnStop.onclick = () => {
+            try {
+                // Stop playback and reset to 0s
+                if (currentSource) {
+                    stopPlayback();
+                    resetPlayButtonText();
+                }
+                
+                // Reset position to 0
+                currentPlaybackPosition = 0;
+                updatePlaybackProgress();
+            } catch (error) {
+                console.error('Error in btnStop:', error);
+            }
+        };
+    }
+    
+    const btnForward10 = document.getElementById('btnForward10');
+    if (btnForward10) {
+        btnForward10.onclick = () => {
+            try {
+                const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
+                if (!selected || !selected.audioBuffer) return;
+                
+                // Stop current playback
+                const wasPlaying = isPlaying;
+                
+                if (currentSource) {
+                    // Save current position before stopping
+                    saveCurrentPosition();
+                    
+                    stopPlayback();
+                    resetPlayButtonText();
+                }
+                
+                // Calculate new position
+                const duration = selected.audioBuffer.duration;
+                const newTime = currentPlaybackPosition + SKIP_SECONDS;
+                
+                // If less than 10s remaining, stop
+                if (newTime >= duration) {
+                    currentPlaybackPosition = 0;
+                    updatePlaybackProgress();
+                    return;
+                }
+                
+                currentPlaybackPosition = newTime;
+                updatePlaybackProgress();
+                
+                // If was playing, restart from new position
+                if (wasPlaying) {
+                    playFromPosition(selected, newTime);
+                }
+            } catch (error) {
+                console.error('Error in btnForward10:', error);
+            }
+        };
+    }
+    
+    // Helper function to play from a specific position
+    async function playFromPosition(fileEntry, startTime) {
+        try {
+            const ctx = getAudioContext();
+            const audioBuffer = fileEntry.audioBuffer;
+            
+            currentSource = ctx.createBufferSource();
+            currentSource.buffer = audioBuffer;
+            currentSource.connect(ctx.destination);
+            
+            playbackStartTime = ctx.currentTime - startTime;
+            playbackDuration = audioBuffer.duration;
+            isPlaying = true;
+            
+            currentSource.start(0, startTime);
+            
+            updatePlaybackProgress();
+            
+            // Update progress bar every 100ms
+            playbackInterval = setInterval(updatePlaybackProgress, 100);
+            
+            currentSource.onended = () => {
+                stopPlayback();
+                currentPlaybackPosition = 0;
+                updatePlaybackProgress();
+            };
+        } catch (error) {
+            console.error('Error playing from position:', error);
+        }
     }
     
     // Handle progress bar - disable during playback (seeking not implemented)
