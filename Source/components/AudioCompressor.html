@@ -101,6 +101,16 @@
                 >
                     <!-- Waveform Display -->
                     <div class="audio-waveform-container mb-3" id="spectro">
+                        <!-- Waveform View Toggle -->
+                        <div class="d-flex justify-content-center align-items-center mb-2">
+                            <label class="text-white-50 small me-2">Originale</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="waveformViewToggle" checked>
+                                <label class="form-check-label text-white-50 small ms-2" for="waveformViewToggle">
+                                    Processato
+                                </label>
+                            </div>
+                        </div>
                         <canvas id="waveformCanvas" width="800" height="200"></canvas>
                         <input type="range" class="form-range" id="waveformScrollbar" 
                                min="0" max="100" value="0" step="0.1">
