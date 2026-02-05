@@ -457,8 +457,7 @@ select.form-select option {
 }
 
 #waveformCanvas {
-    max-width: 100%;
-    height: auto;
+    display: block;
     border-radius: 4px;
 }
 
