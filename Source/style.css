@@ -454,6 +454,7 @@ select.form-select option {
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-direction: column;
 }
 
 #waveformCanvas {
