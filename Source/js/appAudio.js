@@ -660,7 +660,7 @@ window.removeAudioFile = function(fileId) {
         audioState.selectedFileId = audioState.files.length > 0 ? 
             audioState.files[0].id : null;
     }
-    $("#btnStop").click();
+    document.querySelector("#btnStop").click();
     updateAudioUI();
 
     if (audioState.files.length === 0) {
