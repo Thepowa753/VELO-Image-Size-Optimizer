@@ -525,11 +525,7 @@ function updateAudioUI() {
         
         const canvas = document.getElementById('waveformCanvas');
         if (canvas) {
-            // Use the appropriate buffer based on toggle state
-            const bufferToDisplay = audioState.showProcessedWaveform 
-                ? selected.audioBuffer 
-                : (selected.originalAudioBuffer || selected.audioBuffer);
-            drawWaveform(bufferToDisplay, canvas, -1, -1);
+            drawWaveform(getWaveformBuffer(selected), canvas, -1, -1);
         }
         
         // Update trim input defaults
