@@ -1076,9 +1076,6 @@ function setupAudioEventListeners() {
             const startTime = (zoom.offsetX / canvasWidth) * duration;
             const clickTime = startTime + (clickXRatio * visibleDuration);
             
-            // Remember if we were playing before
-            const wasPlaying = isPlaying;
-            
             // Stop current playback if any
             if (currentSource) {
                 currentSource.stop();
