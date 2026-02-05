@@ -858,6 +858,25 @@ function setupAudioEventListeners() {
     let isPlaying = false;
     let currentPlaybackPosition = 0; // Track current position in seconds
     
+    // Constants for playback control
+    const SKIP_SECONDS = 10;
+    
+    // Helper function to save current playback position
+    function saveCurrentPosition() {
+        if (isPlaying && currentSource) {
+            const ctx = getAudioContext();
+            currentPlaybackPosition = ctx.currentTime - playbackStartTime;
+        }
+    }
+    
+    // Helper function to reset play button text
+    function resetPlayButtonText() {
+        const btnPlayOriginal = document.getElementById('btnPlayOriginal');
+        if (btnPlayOriginal) btnPlayOriginal.textContent = 'Play Original';
+        const btnPlayProcessed = document.getElementById('btnPlayProcessed');
+        if (btnPlayProcessed) btnPlayProcessed.textContent = 'Play Processed';
+    }
+    
     // Update progress bar and time display
     function updatePlaybackProgress() {
         const audioProgressBar = document.getElementById('audioProgressBar');
@@ -1018,14 +1037,11 @@ function setupAudioEventListeners() {
                 const wasPlaying = isPlaying;
                 if (currentSource) {
                     stopPlayback();
-                    const btnPlayOriginal = document.getElementById('btnPlayOriginal');
-                    if (btnPlayOriginal) btnPlayOriginal.textContent = 'Play Original';
-                    const btnPlayProcessed = document.getElementById('btnPlayProcessed');
-                    if (btnPlayProcessed) btnPlayProcessed.textContent = 'Play Processed';
+                    resetPlayButtonText();
                 }
                 
                 // Calculate new position - use currentPlaybackPosition instead of calculating
-                const newTime = Math.max(0, currentPlaybackPosition - 10);
+                const newTime = Math.max(0, currentPlaybackPosition - SKIP_SECONDS);
                 currentPlaybackPosition = newTime;
                 updatePlaybackProgress();
                 
@@ -1063,14 +1079,10 @@ function setupAudioEventListeners() {
             try {
                 if (currentSource && isPlaying) {
                     // Save current position before stopping
-                    const ctx = getAudioContext();
-                    currentPlaybackPosition = ctx.currentTime - playbackStartTime;
+                    saveCurrentPosition();
                     
                     stopPlayback();
-                    const btnPlayOriginal = document.getElementById('btnPlayOriginal');
-                    if (btnPlayOriginal) btnPlayOriginal.textContent = 'Play Original';
-                    const btnPlayProcessed = document.getElementById('btnPlayProcessed');
-                    if (btnPlayProcessed) btnPlayProcessed.textContent = 'Play Processed';
+                    resetPlayButtonText();
                     
                     updatePlaybackProgress();
                 }
@@ -1087,10 +1099,7 @@ function setupAudioEventListeners() {
                 // Stop playback and reset to 0s
                 if (currentSource) {
                     stopPlayback();
-                    const btnPlayOriginal = document.getElementById('btnPlayOriginal');
-                    if (btnPlayOriginal) btnPlayOriginal.textContent = 'Play Original';
-                    const btnPlayProcessed = document.getElementById('btnPlayProcessed');
-                    if (btnPlayProcessed) btnPlayProcessed.textContent = 'Play Processed';
+                    resetPlayButtonText();
                 }
                 
                 // Reset position to 0
@@ -1114,19 +1123,15 @@ function setupAudioEventListeners() {
                 
                 if (currentSource) {
                     // Save current position before stopping
-                    const ctx = getAudioContext();
-                    currentPlaybackPosition = ctx.currentTime - playbackStartTime;
+                    saveCurrentPosition();
                     
                     stopPlayback();
-                    const btnPlayOriginal = document.getElementById('btnPlayOriginal');
-                    if (btnPlayOriginal) btnPlayOriginal.textContent = 'Play Original';
-                    const btnPlayProcessed = document.getElementById('btnPlayProcessed');
-                    if (btnPlayProcessed) btnPlayProcessed.textContent = 'Play Processed';
+                    resetPlayButtonText();
                 }
                 
                 // Calculate new position
                 const duration = selected.audioBuffer.duration;
-                const newTime = currentPlaybackPosition + 10;
+                const newTime = currentPlaybackPosition + SKIP_SECONDS;
                 
                 // If less than 10s remaining, stop
                 if (newTime >= duration) {
