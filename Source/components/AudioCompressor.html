@@ -100,7 +100,7 @@
                     class="w-100 h-100 d-flex flex-column"
                 >
                     <!-- Waveform Display -->
-                    <div class="audio-waveform-container mb-3">
+                    <div class="audio-waveform-container mb-3" id="spectro">
                         <canvas id="waveformCanvas" width="800" height="200"></canvas>
                     </div>
 
@@ -178,3 +178,10 @@
         </div>
     </div>
 </div>
+<script>
+    $( document ).ready(function() {
+    var width = $("#spectro").clientWidth;
+    if(width > 400)
+        $("#waveformCanvas").width = width -100
+    });
+</script>
