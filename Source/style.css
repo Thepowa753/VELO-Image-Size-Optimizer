@@ -462,6 +462,25 @@ select.form-select option {
     border-radius: 4px;
 }
 
+/* Audio Scrollbar for Zoom */
+.audio-scrollbar-container {
+    width: 100%;
+    max-width: 800px;
+    padding: 0 10px;
+}
+
+.audio-scrollbar-container .form-range {
+    background: transparent;
+}
+
+.audio-scrollbar-container .form-range::-webkit-slider-thumb {
+    background: #0d6efd;
+}
+
+.audio-scrollbar-container .form-range::-moz-range-thumb {
+    background: #0d6efd;
+}
+
 .audio-controls-panel {
     width: 100%;
     max-width: 800px;

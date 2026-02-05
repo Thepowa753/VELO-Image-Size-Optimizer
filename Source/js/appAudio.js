@@ -349,7 +349,8 @@ async function resetTrim(fileEntry) {
 // Draw Waveform with optional playback position indicator
 // Pass playbackPosition = -1 to hide the playback indicator
 // Pass playbackPosition >= 0 to show indicator at that position (in seconds)
-function drawWaveform(audioBuffer, canvas, playbackPosition = -1) {
+// Pass hoverPosition >= 0 to show hover indicator at that position (in seconds)
+function drawWaveform(audioBuffer, canvas, playbackPosition = -1, hoverPosition = -1) {
     if (!canvas || !audioBuffer) return;
 
     const ctx = canvas.getContext('2d');
@@ -469,6 +470,36 @@ function drawWaveform(audioBuffer, canvas, playbackPosition = -1) {
             ctx.fill();
         }
     }
+    
+    // Draw hover position indicator (only when not playing)
+    if (hoverPosition >= 0 && hoverPosition <= audioBuffer.duration && playbackPosition < 0) {
+        const duration = audioBuffer.duration;
+        const visibleDuration = duration / zoom.scale;
+        const startTime = (startPixel / width) * duration;
+        const endTime = startTime + visibleDuration;
+        
+        // Only draw if hover position is in visible range
+        if (hoverPosition >= startTime && hoverPosition <= endTime) {
+            const posX = ((hoverPosition - startTime) / visibleDuration) * width;
+        
+            // Draw vertical line (slightly transparent red)
+            ctx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(posX, 0);
+            ctx.lineTo(posX, height);
+            ctx.stroke();
+        
+            // Draw triangle at top
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+            ctx.beginPath();
+            ctx.moveTo(posX, 0);
+            ctx.lineTo(posX - 5, 8);
+            ctx.lineTo(posX + 5, 8);
+            ctx.closePath();
+            ctx.fill();
+        }
+    }
 }
 
 // Update Audio UI
@@ -481,7 +512,7 @@ function updateAudioUI() {
     if (selected && selected.audioBuffer) {
         const canvas = document.getElementById('waveformCanvas');
         if (canvas) {
-            drawWaveform(selected.audioBuffer, canvas, -1);
+            drawWaveform(selected.audioBuffer, canvas, -1, -1);
         }
         
         // Update trim input defaults
@@ -515,6 +546,9 @@ function updateAudioUI() {
         if (els.initOverlay) els.initOverlay.classList.add('d-none');
         if (els.appInterface) els.appInterface.classList.remove('d-none');
     }
+    
+    // Update scrollbar
+    updateWaveformScrollbar();
 }
 
 // Render Audio File List
@@ -657,6 +691,32 @@ async function downloadAudioZip() {
     link.click();
 }
 
+// Function to update scrollbar visibility and value
+function updateWaveformScrollbar() {
+    const scrollbarContainer = document.getElementById('waveformScrollbarContainer');
+    const scrollbar = document.getElementById('waveformScrollbar');
+    const waveformCanvas = document.getElementById('waveformCanvas');
+    
+    if (!scrollbarContainer || !scrollbar || !waveformCanvas) return;
+    
+    const zoom = audioState.waveformZoom;
+    
+    // Show scrollbar only when zoomed in
+    if (zoom.scale > 1.0) {
+        scrollbarContainer.style.display = 'block';
+        
+        // Calculate scrollbar value (0-100)
+        const canvasWidth = waveformCanvas.width;
+        const visibleWidth = canvasWidth / zoom.scale;
+        const maxOffset = canvasWidth - visibleWidth;
+        const scrollValue = maxOffset > 0 ? (zoom.offsetX / maxOffset) * 100 : 0;
+        
+        scrollbar.value = scrollValue;
+    } else {
+        scrollbarContainer.style.display = 'none';
+    }
+}
+
 // Setup Audio Event Listeners
 function setupAudioEventListeners() {
     // Debug logging (can be removed for production)
@@ -789,7 +849,7 @@ function setupAudioEventListeners() {
             
             // Update waveform with playback position
             if (selected && selected.audioBuffer && canvas) {
-                drawWaveform(selected.audioBuffer, canvas, elapsed);
+                drawWaveform(selected.audioBuffer, canvas, elapsed, -1);
             }
         } else {
             audioProgressBar.value = 0;
@@ -820,7 +880,7 @@ function setupAudioEventListeners() {
         const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
         const canvas = document.getElementById('waveformCanvas');
         if (selected && selected.audioBuffer && canvas) {
-            drawWaveform(selected.audioBuffer, canvas, -1);
+            drawWaveform(selected.audioBuffer, canvas, -1, -1);
         }
     }
     
@@ -960,9 +1020,12 @@ function setupAudioEventListeners() {
                 zoom.scale = newScale;
                 zoom.offsetX = Math.max(0, Math.min(canvasWidth - newVisibleWidth, newOffsetX));
                 
+                // Update scrollbar
+                updateWaveformScrollbar();
+                
                 // Redraw waveform with new zoom
                 const playbackPosition = isPlaying ? (getAudioContext().currentTime - playbackStartTime) : -1;
-                drawWaveform(selected.audioBuffer, waveformCanvas, playbackPosition);
+                drawWaveform(selected.audioBuffer, waveformCanvas, playbackPosition, -1);
             }
         });
         
@@ -983,13 +1046,18 @@ function setupAudioEventListeners() {
             const startTime = (zoom.offsetX / canvasWidth) * duration;
             const clickTime = startTime + (clickXRatio * visibleDuration);
             
+            const wasPlaying = isPlaying;
+            
             // Stop current playback if any
             if (currentSource) {
-                stopPlayback();
-                const btnPlayOriginal = document.getElementById('btnPlayOriginal');
-                const btnPlayProcessed = document.getElementById('btnPlayProcessed');
-                if (btnPlayOriginal) btnPlayOriginal.textContent = 'Play Original';
-                if (btnPlayProcessed) btnPlayProcessed.textContent = 'Play Processed';
+                if (currentSource.stop) {
+                    currentSource.stop();
+                }
+                currentSource = null;
+                if (playbackInterval) {
+                    clearInterval(playbackInterval);
+                    playbackInterval = null;
+                }
             }
             
             // Start playback from clicked position using the already-decoded buffer
@@ -1023,6 +1091,65 @@ function setupAudioEventListeners() {
             } catch (error) {
                 console.error('Error playing audio from position:', error);
             }
+        });
+        
+        // Mouse move to show hover indicator
+        let lastHoverPosition = -1;
+        waveformCanvas.addEventListener('mousemove', (e) => {
+            const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
+            if (!selected || !selected.audioBuffer) return;
+            
+            const rect = waveformCanvas.getBoundingClientRect();
+            const canvasWidth = waveformCanvas.width;
+            const mouseX = e.clientX - rect.left;
+            const mouseXRatio = mouseX / canvasWidth;
+            
+            // Calculate time position based on zoom
+            const zoom = audioState.waveformZoom;
+            const duration = selected.audioBuffer.duration;
+            const visibleDuration = duration / zoom.scale;
+            const startTime = (zoom.offsetX / canvasWidth) * duration;
+            const hoverTime = startTime + (mouseXRatio * visibleDuration);
+            
+            lastHoverPosition = hoverTime;
+            
+            // Redraw waveform with hover indicator (only if not playing)
+            const playbackPosition = isPlaying ? (getAudioContext().currentTime - playbackStartTime) : -1;
+            drawWaveform(selected.audioBuffer, waveformCanvas, playbackPosition, hoverTime);
+        });
+        
+        // Mouse leave to hide hover indicator
+        waveformCanvas.addEventListener('mouseleave', () => {
+            const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
+            if (!selected || !selected.audioBuffer) return;
+            
+            lastHoverPosition = -1;
+            
+            // Redraw waveform without hover indicator
+            const playbackPosition = isPlaying ? (getAudioContext().currentTime - playbackStartTime) : -1;
+            drawWaveform(selected.audioBuffer, waveformCanvas, playbackPosition, -1);
+        });
+    }
+    
+    // Scrollbar event listener
+    const waveformScrollbar = document.getElementById('waveformScrollbar');
+    if (waveformScrollbar && waveformCanvas) {
+        waveformScrollbar.addEventListener('input', (e) => {
+            const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
+            if (!selected || !selected.audioBuffer) return;
+            
+            const zoom = audioState.waveformZoom;
+            const scrollValue = parseFloat(e.target.value);
+            
+            // Calculate new offset from scrollbar value
+            const canvasWidth = waveformCanvas.width;
+            const visibleWidth = canvasWidth / zoom.scale;
+            const maxOffset = canvasWidth - visibleWidth;
+            zoom.offsetX = (scrollValue / 100) * maxOffset;
+            
+            // Redraw waveform
+            const playbackPosition = isPlaying ? (getAudioContext().currentTime - playbackStartTime) : -1;
+            drawWaveform(selected.audioBuffer, waveformCanvas, playbackPosition, -1);
         });
     }
 
