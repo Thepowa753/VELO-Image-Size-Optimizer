@@ -1076,6 +1076,9 @@ function setupAudioEventListeners() {
             const startTime = (zoom.offsetX / canvasWidth) * duration;
             const clickTime = startTime + (clickXRatio * visibleDuration);
             
+            // Remember if we were playing before
+            const wasPlaying = isPlaying;
+            
             // Stop current playback if any
             if (currentSource) {
                 currentSource.stop();
@@ -1087,6 +1090,8 @@ function setupAudioEventListeners() {
             }
             
             // Start playback from clicked position using the already-decoded buffer
+            // If music was already playing, continue playing from the new position
+            // If music was not playing, start playing from the clicked position
             try {
                 const ctx = getAudioContext();
                 const audioBuffer = selected.audioBuffer;
