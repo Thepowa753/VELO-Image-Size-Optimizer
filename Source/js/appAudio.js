@@ -471,8 +471,8 @@ function drawWaveform(audioBuffer, canvas, playbackPosition = -1, hoverPosition 
         }
     }
     
-    // Draw hover position indicator (only when not playing)
-    if (hoverPosition >= 0 && hoverPosition <= audioBuffer.duration && playbackPosition < 0) {
+    // Draw hover position indicator (shows even when playing)
+    if (hoverPosition >= 0 && hoverPosition <= audioBuffer.duration) {
         const duration = audioBuffer.duration;
         const visibleDuration = duration / zoom.scale;
         const startTime = (startPixel / width) * duration;
@@ -510,6 +510,9 @@ function updateAudioUI() {
     // Update selected file preview
     const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
     if (selected && selected.audioBuffer) {
+        // Resize canvas first
+        resizeWaveformCanvas();
+        
         const canvas = document.getElementById('waveformCanvas');
         if (canvas) {
             drawWaveform(selected.audioBuffer, canvas, -1, -1);
@@ -714,6 +717,33 @@ function updateWaveformScrollbar() {
         scrollbar.value = scrollValue;
     } else {
         scrollbarContainer.style.display = 'none';
+    }
+}
+
+// Function to resize canvas dynamically to 95% of parent container
+function resizeWaveformCanvas() {
+    const canvas = document.getElementById('waveformCanvas');
+    const container = document.getElementById('spectro');
+    
+    if (!canvas || !container) return;
+    
+    // Get the container width and set canvas to 95% of it
+    const containerWidth = container.clientWidth;
+    const canvasWidth = Math.floor(containerWidth * 0.95);
+    
+    // Only update if size has changed significantly (to avoid constant redraws)
+    if (Math.abs(canvas.width - canvasWidth) > 5) {
+        canvas.width = canvasWidth;
+        
+        // Redraw waveform if there's an audio buffer loaded
+        const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
+        if (selected && selected.audioBuffer) {
+            const playbackPosition = isPlaying ? (getAudioContext().currentTime - playbackStartTime) : -1;
+            drawWaveform(selected.audioBuffer, canvas, playbackPosition, -1);
+        }
+        
+        // Update scrollbar after resize
+        updateWaveformScrollbar();
     }
 }
 
@@ -1046,6 +1076,9 @@ function setupAudioEventListeners() {
             const startTime = (zoom.offsetX / canvasWidth) * duration;
             const clickTime = startTime + (clickXRatio * visibleDuration);
             
+            // If already playing, just seek to the new position without stopping
+            const wasPlaying = isPlaying;
+            
             // Stop current playback if any
             if (currentSource) {
                 currentSource.stop();
@@ -1164,5 +1197,11 @@ document.addEventListener('velo-ready', () => {
         // Debug logging (can be removed for production)
         console.log('Audio component detected, setting up event listeners');
         setupAudioEventListeners();
+        
+        // Initial canvas resize
+        setTimeout(resizeWaveformCanvas, 100);
+        
+        // Add window resize listener
+        window.addEventListener('resize', resizeWaveformCanvas);
     }
 });
