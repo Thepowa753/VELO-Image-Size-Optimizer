@@ -17,7 +17,8 @@ const audioState = {
         offsetX: 0,      // Horizontal offset in pixels
         minScale: 1.0,
         maxScale: 20.0
-    }
+    },
+    showProcessedWaveform: true  // Toggle between original and processed waveform
 };
 
 // Audio Context
@@ -346,6 +347,15 @@ async function resetTrim(fileEntry) {
 }
 
 
+// Get the appropriate audio buffer based on waveform view toggle state
+function getWaveformBuffer(fileEntry) {
+    if (!fileEntry) return null;
+    
+    return audioState.showProcessedWaveform 
+        ? fileEntry.audioBuffer 
+        : (fileEntry.originalAudioBuffer || fileEntry.audioBuffer);
+}
+
 // Draw Waveform with optional playback position indicator
 // Pass playbackPosition = -1 to hide the playback indicator
 // Pass playbackPosition >= 0 to show indicator at that position (in seconds)
@@ -515,7 +525,11 @@ function updateAudioUI() {
         
         const canvas = document.getElementById('waveformCanvas');
         if (canvas) {
-            drawWaveform(selected.audioBuffer, canvas, -1, -1);
+            // Use the appropriate buffer based on toggle state
+            const bufferToDisplay = audioState.showProcessedWaveform 
+                ? selected.audioBuffer 
+                : (selected.originalAudioBuffer || selected.audioBuffer);
+            drawWaveform(bufferToDisplay, canvas, -1, -1);
         }
         
         // Update trim input defaults
@@ -739,7 +753,7 @@ function resizeWaveformCanvas() {
         const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
         if (selected && selected.audioBuffer) {
             const playbackPosition = isPlaying ? (getAudioContext().currentTime - playbackStartTime) : -1;
-            drawWaveform(selected.audioBuffer, canvas, playbackPosition, -1);
+            drawWaveform(getWaveformBuffer(selected), canvas, playbackPosition, -1);
         }
         
         // Update scrollbar after resize
@@ -788,6 +802,15 @@ function setupAudioEventListeners() {
                 f.format = audioState.globalFormat;
                 processAudioFile(f);
             });
+        };
+    }
+
+    // Waveform view toggle
+    const waveformViewToggle = document.getElementById('waveformViewToggle');
+    if (waveformViewToggle) {
+        waveformViewToggle.onchange = (e) => {
+            audioState.showProcessedWaveform = e.target.checked;
+            updateAudioUI();
         };
     }
 
@@ -900,7 +923,7 @@ function setupAudioEventListeners() {
             
             // Update waveform with playback position
             if (selected && selected.audioBuffer && canvas) {
-                drawWaveform(selected.audioBuffer, canvas, elapsed, -1);
+                drawWaveform(getWaveformBuffer(selected), canvas, elapsed, -1);
             }
         } else {
             audioProgressBar.value = (currentPlaybackPosition / playbackDuration) * 100 || 0;
@@ -931,7 +954,7 @@ function setupAudioEventListeners() {
         const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
         const canvas = document.getElementById('waveformCanvas');
         if (selected && selected.audioBuffer && canvas) {
-            drawWaveform(selected.audioBuffer, canvas, -1, -1);
+            drawWaveform(getWaveformBuffer(selected), canvas, -1, -1);
         }
     }
     
@@ -1235,7 +1258,7 @@ function setupAudioEventListeners() {
                 
                 // Redraw waveform with new zoom
                 const playbackPosition = isPlaying ? (getAudioContext().currentTime - playbackStartTime) : -1;
-                drawWaveform(selected.audioBuffer, waveformCanvas, playbackPosition, -1);
+                drawWaveform(getWaveformBuffer(selected), waveformCanvas, playbackPosition, -1);
             }
         });
         
@@ -1320,7 +1343,7 @@ function setupAudioEventListeners() {
             
             // Redraw waveform with hover indicator (only if not playing)
             const playbackPosition = isPlaying ? (getAudioContext().currentTime - playbackStartTime) : -1;
-            drawWaveform(selected.audioBuffer, waveformCanvas, playbackPosition, hoverTime);
+            drawWaveform(getWaveformBuffer(selected), waveformCanvas, playbackPosition, hoverTime);
         });
         
         // Mouse leave to hide hover indicator
@@ -1330,7 +1353,7 @@ function setupAudioEventListeners() {
             
             // Redraw waveform without hover indicator
             const playbackPosition = isPlaying ? (getAudioContext().currentTime - playbackStartTime) : -1;
-            drawWaveform(selected.audioBuffer, waveformCanvas, playbackPosition, -1);
+            drawWaveform(getWaveformBuffer(selected), waveformCanvas, playbackPosition, -1);
         });
     }
     
@@ -1352,7 +1375,7 @@ function setupAudioEventListeners() {
             
             // Redraw waveform
             const playbackPosition = isPlaying ? (getAudioContext().currentTime - playbackStartTime) : -1;
-            drawWaveform(selected.audioBuffer, waveformCanvas, playbackPosition, -1);
+            drawWaveform(getWaveformBuffer(selected), waveformCanvas, playbackPosition, -1);
         });
     }
 
