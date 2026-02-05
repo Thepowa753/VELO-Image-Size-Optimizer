@@ -1046,13 +1046,9 @@ function setupAudioEventListeners() {
             const startTime = (zoom.offsetX / canvasWidth) * duration;
             const clickTime = startTime + (clickXRatio * visibleDuration);
             
-            const wasPlaying = isPlaying;
-            
             // Stop current playback if any
             if (currentSource) {
-                if (currentSource.stop) {
-                    currentSource.stop();
-                }
+                currentSource.stop();
                 currentSource = null;
                 if (playbackInterval) {
                     clearInterval(playbackInterval);
@@ -1094,7 +1090,6 @@ function setupAudioEventListeners() {
         });
         
         // Mouse move to show hover indicator
-        let lastHoverPosition = -1;
         waveformCanvas.addEventListener('mousemove', (e) => {
             const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
             if (!selected || !selected.audioBuffer) return;
@@ -1111,8 +1106,6 @@ function setupAudioEventListeners() {
             const startTime = (zoom.offsetX / canvasWidth) * duration;
             const hoverTime = startTime + (mouseXRatio * visibleDuration);
             
-            lastHoverPosition = hoverTime;
-            
             // Redraw waveform with hover indicator (only if not playing)
             const playbackPosition = isPlaying ? (getAudioContext().currentTime - playbackStartTime) : -1;
             drawWaveform(selected.audioBuffer, waveformCanvas, playbackPosition, hoverTime);
@@ -1122,8 +1115,6 @@ function setupAudioEventListeners() {
         waveformCanvas.addEventListener('mouseleave', () => {
             const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
             if (!selected || !selected.audioBuffer) return;
-            
-            lastHoverPosition = -1;
             
             // Redraw waveform without hover indicator
             const playbackPosition = isPlaying ? (getAudioContext().currentTime - playbackStartTime) : -1;
