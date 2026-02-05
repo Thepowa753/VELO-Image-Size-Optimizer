@@ -1087,6 +1087,8 @@ function setupAudioEventListeners() {
             }
             
             // Start playback from clicked position using the already-decoded buffer
+            // If music was already playing, continue playing from the new position
+            // If music was not playing, start playing from the clicked position
             try {
                 const ctx = getAudioContext();
                 const audioBuffer = selected.audioBuffer;
