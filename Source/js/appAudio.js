@@ -1110,10 +1110,10 @@ function setupAudioEventListeners() {
                 updatePlaybackProgress();
                 
                 // Update progress bar every 100ms
-                playbackInterval = setInterval(updatePlaybackProgress, 100);
+                playbackInterval = setInterval(updatePlaybackProgress, 25);
                 
                 currentSource.onended = () => {
-                    stopPlayback();
+                    //stopPlayback();
                     if (btnPlayOriginal) btnPlayOriginal.textContent = 'Play Original';
                 };
             } catch (error) {
