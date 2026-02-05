@@ -11,6 +11,12 @@ const audioState = {
     trimSettings: {
         start: 0,
         end: 0
+    },
+    waveformZoom: {
+        scale: 1.0,      // Zoom scale (1.0 = no zoom, 2.0 = 2x zoom, etc.)
+        offsetX: 0,      // Horizontal offset in pixels
+        minScale: 1.0,
+        maxScale: 20.0
     }
 };
 
@@ -355,7 +361,20 @@ function drawWaveform(audioBuffer, canvas, playbackPosition = -1) {
     ctx.fillRect(0, 0, width, height);
 
     const data = audioBuffer.getChannelData(0);
-    const step = Math.ceil(data.length / width);
+    const zoom = audioState.waveformZoom;
+    
+    // Calculate visible range based on zoom
+    const totalSamples = data.length;
+    const samplesPerPixel = totalSamples / width;
+    const visibleWidth = width / zoom.scale;
+    const startPixel = Math.max(0, Math.min(zoom.offsetX, width - visibleWidth));
+    const endPixel = Math.min(width, startPixel + visibleWidth);
+    
+    const startSample = Math.floor(startPixel * samplesPerPixel);
+    const endSample = Math.min(totalSamples, Math.ceil(endPixel * samplesPerPixel));
+    const visibleSamples = endSample - startSample;
+    const step = Math.max(1, Math.ceil(visibleSamples / width));
+    
     const amp = height / 2;
 
     ctx.strokeStyle = '#0d6efd';
@@ -366,8 +385,12 @@ function drawWaveform(audioBuffer, canvas, playbackPosition = -1) {
         let min = 1.0;
         let max = -1.0;
         
+        const sampleIndex = startSample + Math.floor((i / width) * visibleSamples);
+        
         for (let j = 0; j < step; j++) {
-            const datum = data[(i * step) + j] || 0;
+            const idx = sampleIndex + j;
+            if (idx >= endSample) break;
+            const datum = data[idx] || 0;
             if (datum < min) min = datum;
             if (datum > max) max = datum;
         }
@@ -388,44 +411,63 @@ function drawWaveform(audioBuffer, canvas, playbackPosition = -1) {
     if ((audioState.trimSettings.start > 0 || audioState.trimSettings.end > 0) && 
         audioState.trimSettings.end > audioState.trimSettings.start) {
         const duration = audioBuffer.duration;
-        const startX = (audioState.trimSettings.start / duration) * width;
-        const endX = audioState.trimSettings.end > 0 ? 
-            (audioState.trimSettings.end / duration) * width : width;
-
-        ctx.fillStyle = 'rgba(13, 110, 253, 0.2)';
-        ctx.fillRect(startX, 0, endX - startX, height);
-
-        ctx.strokeStyle = '#0d6efd';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(startX, 0);
-        ctx.lineTo(startX, height);
-        ctx.moveTo(endX, 0);
-        ctx.lineTo(endX, height);
-        ctx.stroke();
+        const visibleDuration = duration / zoom.scale;
+        const startTime = (startPixel / width) * duration;
+        const endTime = startTime + visibleDuration;
+        
+        // Only draw markers if they're in the visible range
+        const trimStartTime = audioState.trimSettings.start;
+        const trimEndTime = audioState.trimSettings.end > 0 ? audioState.trimSettings.end : duration;
+        
+        if (trimStartTime >= startTime && trimStartTime <= endTime) {
+            const startX = ((trimStartTime - startTime) / visibleDuration) * width;
+            ctx.strokeStyle = '#0d6efd';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(startX, 0);
+            ctx.lineTo(startX, height);
+            ctx.stroke();
+        }
+        
+        if (trimEndTime >= startTime && trimEndTime <= endTime) {
+            const endX = ((trimEndTime - startTime) / visibleDuration) * width;
+            ctx.strokeStyle = '#0d6efd';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(endX, 0);
+            ctx.lineTo(endX, height);
+            ctx.stroke();
+        }
     }
     
     // Draw playback position indicator (pass -1 to hide indicator)
     if (playbackPosition >= 0 && playbackPosition <= audioBuffer.duration) {
         const duration = audioBuffer.duration;
-        const posX = (playbackPosition / duration) * width;
+        const visibleDuration = duration / zoom.scale;
+        const startTime = (startPixel / width) * duration;
+        const endTime = startTime + visibleDuration;
         
-        // Draw vertical line
-        ctx.strokeStyle = '#ff0000';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(posX, 0);
-        ctx.lineTo(posX, height);
-        ctx.stroke();
+        // Only draw if playback position is in visible range
+        if (playbackPosition >= startTime && playbackPosition <= endTime) {
+            const posX = ((playbackPosition - startTime) / visibleDuration) * width;
         
-        // Draw triangle at top
-        ctx.fillStyle = '#ff0000';
-        ctx.beginPath();
-        ctx.moveTo(posX, 0);
-        ctx.lineTo(posX - 5, 8);
-        ctx.lineTo(posX + 5, 8);
-        ctx.closePath();
-        ctx.fill();
+            // Draw vertical line
+            ctx.strokeStyle = '#ff0000';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(posX, 0);
+            ctx.lineTo(posX, height);
+            ctx.stroke();
+        
+            // Draw triangle at top
+            ctx.fillStyle = '#ff0000';
+            ctx.beginPath();
+            ctx.moveTo(posX, 0);
+            ctx.lineTo(posX - 5, 8);
+            ctx.lineTo(posX + 5, 8);
+            ctx.closePath();
+            ctx.fill();
+        }
     }
 }
 
@@ -516,6 +558,9 @@ function renderAudioFileList() {
         div.onclick = (e) => {
             if (!e.target.closest('button')) {
                 audioState.selectedFileId = file.id;
+                // Reset zoom when changing files
+                audioState.waveformZoom.scale = 1.0;
+                audioState.waveformZoom.offsetX = 0;
                 updateAudioUI();
             }
         };
@@ -883,6 +928,102 @@ function setupAudioEventListeners() {
                 audioProgressBar.value = progress;
             }
         };
+    }
+
+    // Waveform zoom and click-to-seek functionality
+    const waveformCanvas = document.getElementById('waveformCanvas');
+    if (waveformCanvas) {
+        // Mouse wheel zoom
+        waveformCanvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            
+            const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
+            if (!selected || !selected.audioBuffer) return;
+            
+            const zoom = audioState.waveformZoom;
+            const rect = waveformCanvas.getBoundingClientRect();
+            const canvasWidth = waveformCanvas.width;
+            const mouseX = e.clientX - rect.left;
+            const mouseXRatio = mouseX / canvasWidth;
+            
+            // Calculate zoom change
+            const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
+            const newScale = Math.max(zoom.minScale, Math.min(zoom.maxScale, zoom.scale * zoomDelta));
+            
+            if (newScale !== zoom.scale) {
+                // Adjust offset to zoom towards mouse position
+                const oldVisibleWidth = canvasWidth / zoom.scale;
+                const newVisibleWidth = canvasWidth / newScale;
+                const oldMouseTime = (zoom.offsetX + mouseXRatio * oldVisibleWidth);
+                const newOffsetX = oldMouseTime - mouseXRatio * newVisibleWidth;
+                
+                zoom.scale = newScale;
+                zoom.offsetX = Math.max(0, Math.min(canvasWidth - newVisibleWidth, newOffsetX));
+                
+                // Redraw waveform with new zoom
+                const playbackPosition = isPlaying ? (getAudioContext().currentTime - playbackStartTime) : -1;
+                drawWaveform(selected.audioBuffer, waveformCanvas, playbackPosition);
+            }
+        });
+        
+        // Click to seek
+        waveformCanvas.addEventListener('click', async (e) => {
+            const selected = audioState.files.find(f => f.id === audioState.selectedFileId);
+            if (!selected || !selected.audioBuffer) return;
+            
+            const rect = waveformCanvas.getBoundingClientRect();
+            const canvasWidth = waveformCanvas.width;
+            const clickX = e.clientX - rect.left;
+            const clickXRatio = clickX / canvasWidth;
+            
+            // Calculate time position based on zoom
+            const zoom = audioState.waveformZoom;
+            const duration = selected.audioBuffer.duration;
+            const visibleDuration = duration / zoom.scale;
+            const startTime = (zoom.offsetX / canvasWidth) * duration;
+            const clickTime = startTime + (clickXRatio * visibleDuration);
+            
+            // Stop current playback if any
+            if (currentSource) {
+                stopPlayback();
+                const btnPlayOriginal = document.getElementById('btnPlayOriginal');
+                const btnPlayProcessed = document.getElementById('btnPlayProcessed');
+                if (btnPlayOriginal) btnPlayOriginal.textContent = 'Play Original';
+                if (btnPlayProcessed) btnPlayProcessed.textContent = 'Play Processed';
+            }
+            
+            // Start playback from clicked position using the already-decoded buffer
+            try {
+                const ctx = getAudioContext();
+                const audioBuffer = selected.audioBuffer;
+                
+                currentSource = ctx.createBufferSource();
+                currentSource.buffer = audioBuffer;
+                currentSource.connect(ctx.destination);
+                
+                // Start from clicked position
+                const startOffset = Math.max(0, Math.min(clickTime, audioBuffer.duration));
+                playbackStartTime = ctx.currentTime - startOffset;
+                playbackDuration = audioBuffer.duration;
+                isPlaying = true;
+                
+                currentSource.start(0, startOffset);
+                
+                const btnPlayOriginal = document.getElementById('btnPlayOriginal');
+                if (btnPlayOriginal) btnPlayOriginal.textContent = 'Stop';
+                updatePlaybackProgress();
+                
+                // Update progress bar every 100ms
+                playbackInterval = setInterval(updatePlaybackProgress, 100);
+                
+                currentSource.onended = () => {
+                    stopPlayback();
+                    if (btnPlayOriginal) btnPlayOriginal.textContent = 'Play Original';
+                };
+            } catch (error) {
+                console.error('Error playing audio from position:', error);
+            }
+        });
     }
 
     // Drag & Drop for audio files
