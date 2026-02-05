@@ -1076,9 +1076,6 @@ function setupAudioEventListeners() {
             const startTime = (zoom.offsetX / canvasWidth) * duration;
             const clickTime = startTime + (clickXRatio * visibleDuration);
             
-            // If already playing, just seek to the new position without stopping
-            const wasPlaying = isPlaying;
-            
             // Stop current playback if any
             if (currentSource) {
                 currentSource.stop();
@@ -1198,8 +1195,9 @@ document.addEventListener('velo-ready', () => {
         console.log('Audio component detected, setting up event listeners');
         setupAudioEventListeners();
         
-        // Initial canvas resize
-        setTimeout(resizeWaveformCanvas, 100);
+        // Initial canvas resize with a short delay to ensure DOM is fully rendered
+        const CANVAS_RESIZE_DELAY_MS = 100;
+        setTimeout(resizeWaveformCanvas, CANVAS_RESIZE_DELAY_MS);
         
         // Add window resize listener
         window.addEventListener('resize', resizeWaveformCanvas);
